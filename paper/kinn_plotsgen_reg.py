@@ -580,7 +580,7 @@ axs[2].spines['top'].set_linestyle("dashed")
 axs[2].spines['left'].set_linewidth(0.025)
 axs[2].spines['left'].set_linestyle("dashed")
 
-axs[2].set_ylabel('$\ln(k(\omega_m))$')
+axs[2].set_ylabel('$\ln(k(\mathbf{p}))$')
 axs[2].set_xlabel('$\ln(k_0)$')
 
 
@@ -592,8 +592,8 @@ axs[2].tick_params(top=False,labelbottom=True, labeltop=False,labelleft=False,la
 axs[1].yaxis.set_label_position("left")
 axs[1].yaxis.tick_left()
 axs[1].set_ylim([-0.00,1.00])
-#plt.savefig('latex/figures/pareto.pdf',dpi=300,bbox_inches='tight')        
-#plt.savefig('latex/figures/pareto.svg',dpi=1000,bbox_inches='tight')     
+plt.savefig('latex_reg/figures/pareto_source.pdf',dpi=300,bbox_inches='tight')        
+plt.savefig('latex_reg/figures/pareto_source.svg',dpi=1000,bbox_inches='tight')     
 # -
 
 # #### Summary model `3`, $SQ+n$
@@ -861,8 +861,8 @@ for addon in addons:
         ax.set_xlabel('Model Error, $log(\mathbf{j_m})$')
         ax2.set_ylabel('Correlation Coefficient\nKinetic Parameters',c=c2)
         
-        axp.set_ylabel('$\omega_m$, Training')
-        axp.set_xlabel('$\omega_m$, Ground Truth')
+        axp.set_ylabel('$\mathbf{p}$, Training')
+        axp.set_xlabel('$\mathbf{p}$, Ground Truth')
         plt.tight_layout()
 
 # #### Parameter Correlation Plot Source
@@ -930,8 +930,8 @@ for addon in addons:
         ax.set_xlabel('Model Error, $log(\mathbf{j_m})$')
         ax2.set_ylabel('Correlation Coefficient\nKinetic Parameters',c=c2)
         
-        axp.set_ylabel('$\omega_m$, Training')
-        axp.set_xlabel('$\omega_m$, Ground Truth')
+        axp.set_ylabel('$\mathbf{p}$, Training')
+        axp.set_xlabel('$\mathbf{p}$, Ground Truth')
         plt.tight_layout()
 
 # #### Forward Results Summary Table
@@ -1181,7 +1181,7 @@ for a, mkm in enumerate(mkms): # MKMs
             ax.set_xlim(newbounds)
             ax.set_ylim(newbounds)
             if  n == 2 or (a==0 and n==1):
-                ax.set_ylabel('$\ln(k(\omega_m))$')
+                ax.set_ylabel('$\ln(k(\mathbf{p}))$')
             ax.set_xlabel('$\ln(k_0)$')
             ax.xaxis.set_ticks_position('bottom')
             if n > 0:
@@ -2100,7 +2100,7 @@ for _ in [axs]:
 
 axs.set_xlim(newbounds)
 axs.set_ylim(newbounds)
-axs.set_ylabel('$\ln(k(\omega_m))$')
+axs.set_ylabel('$\ln(k(\mathbf{p}))$')
 axs.set_xlabel('$\ln(k_0)$')
 axs.xaxis.set_ticks_position('bottom')
 axs.yaxis.set_ticks_position('right')
