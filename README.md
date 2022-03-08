@@ -8,7 +8,7 @@ Raw preliminary [JAX](https://github.com/google/jax)-based source code can be fo
 
 #### Reference Jupyter Notebooks
 
-   1. Combined data generation  can be found [here](./paper/kinns_datagen_reg.ipynb).
-   2. Data digestion and plot generation [here](./paper/kinns_plotsgen.ipynb).
+   1. Combined data generation  can be found [here](./paper/kinn_datagen_reg.ipynb).
+   2. Data digestion and plot generation [here](./paper/kinn_plotsgen.ipynb).
 
 
