@@ -1,18 +1,19 @@
 ### KINNs: Kinetics-Informed Neural Networks
 ---
-#### Pareto %2B Regularization Approach
+#### Pareto + Regularization Approach
 
 arXiv: https://doi.org/10.48550/arXiv.2011.14473
 
-***Exemplary KINNs training*** for the *gdacs* reaction type
+***Exemplary KINNs training*** for the *dcs* reaction type
 
 <p align="center">
-  <img src="./misc/gifs/kinn4.gif" alt="animated" width="1125"/>
+  <img src="./misc/gifs/kinn4.gif" alt="animated" width="1000"/>
 </p>
 
+<img src="https://render.githubusercontent.com/render/math?math=\dot{\mathbf{x}}(t)"> is the automatic differentatiation of a the neural-network <img src="https://render.githubusercontent.com/render/math?math=\mathbf{x}(t)"> over time points <img src="https://render.githubusercontent.com/render/math?math=t">. The physical mode (microkinetic model) is denoted by <img src="https://render.githubusercontent.com/render/math?math=f_\mathbf{p}{(\cdot)}"> with parameters <img src="https://render.githubusercontent.com/render/math?math=\mathbf{p}=\ln(\mathbf{k})">.
+
 The kinetic model represents the following fully-reversible chemical reactions.   
-The latent Kinetics type *d* involves ad/desorption steps and a surface reaction between adsorbed molecules.   
-An intermediate species (radicals, <img src="https://render.githubusercontent.com/render/math?math=D^*">) that do not have a corresponding gas phase species is part of the reaction, type *c*.   
+The latent Kinetics type *d* involves ad/desorption steps, intermediate species (radicals, <img src="https://render.githubusercontent.com/render/math?math=D^*">) that do not have a corresponding gas phase species is part of the reaction, type *c*.   
 Reaction between radicals ![formula](https://render.githubusercontent.com/render/math?math=D^*), ![formula](https://render.githubusercontent.com/render/math?math=E^*), and ![formula](https://render.githubusercontent.com/render/math?math=F^*), adds further complexity to surface reaction, type *s*.   
 
 
