@@ -7,7 +7,7 @@ arXiv: https://doi.org/10.48550/arXiv.2011.14473
 ***Exemplary KINNs training*** for the *dcs* reaction type
 
 <p align="center">
-  <img src="./misc/gifs/kinn4.gif" alt="animated" width="1000"/>
+  <img src="./misc/gifs/kinn4.gif" alt="animated" width="800"/>
 </p>
 
 <img src="https://render.githubusercontent.com/render/math?math=\dot{\mathbf{x}}(t)"> is the automatic differentatiation of a the neural-network <img src="https://render.githubusercontent.com/render/math?math=\mathbf{x}(t)"> over time points <img src="https://render.githubusercontent.com/render/math?math=t">. The physical mode (microkinetic model) is denoted by <img src="https://render.githubusercontent.com/render/math?math=f_\mathbf{p}{(\cdot)}"> with parameters <img src="https://render.githubusercontent.com/render/math?math=\mathbf{p}=\ln(\mathbf{k})">.
