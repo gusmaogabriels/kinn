@@ -4,7 +4,7 @@
 
 arXiv: https://doi.org/10.48550/arXiv.2011.14473
 
-***Exemplary KINNs training*** for the *dcs* reaction type
+***KINNs training example*** for the *dcs* reaction type
 
 <p align="center">
   <img src="./misc/gifs/kinn4.gif" alt="animated" width="800"/>
