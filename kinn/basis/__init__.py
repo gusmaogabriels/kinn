@@ -6,12 +6,13 @@ __version__ = '1.0'
 
 import jax.numpy as jnp
 from numpy.random import choice
-import numpy as np
+import numpy as onp
 from jax import grad, jit, vmap, pmap, jacobian, jacfwd, jacrev, hessian, random
+import jaxlib
 from functools import partial
 from jax.lax import Precision
 from jax.scipy.special import logsumexp
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
 from jax.config import config
 from jax.tree_util import tree_map
 config.update("jax_debug_nans", True)
@@ -30,6 +31,12 @@ from scipy.optimize import minimize
 from scipy.interpolate import griddata, interp1d, BSpline, CubicSpline
 from scipy.integrate import solve_ivp, quadrature, romberg, simps
 plt.style.use('seaborn-white')
+
+from .model import *
+from .nnx import *
+from .mle import *
+#from .mle_noncentered import *
+from .mle_pfr import *
 
 SMALL_SIZE = 12
 MEDIUM_SIZE = 12

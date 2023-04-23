@@ -35,7 +35,7 @@ class TrainerCV(object):
             self.sparams = [] # pseudostatic params 
             if scale:
                 if isinstance(nobs,int) and nobs<self.model.M.shape[0]:
-                    self.params = self.params + [jnp.hstack((jnp.ones(self.model.M.shape[0]-nobs)[:,jnp.newaxis]))]
+                    self.params = self.params #+ [jnp.hstack((jnp.ones(self.model.M.shape[0]-nobs)[:,jnp.newaxis]))]
                 else:
                     scale = False # do not scale observable variables
         else: 
@@ -56,7 +56,9 @@ class TrainerCV(object):
         self.best_params = {'error':jnp.inf,'params':[]}
         self.errors      = [0.]
         self.epoch       = 0
+        self.stol        = 0.01
         self.images      = []
+        self.mles        = []
         
         self.__historian__     = historian
         self.iter_data         = iter_data
@@ -70,6 +72,51 @@ class TrainerCV(object):
         else:
             raise Exception('A trainer class must be defined as a subclass of the Trainer superclass'\
                             +' and include an _err_fun(params,batch).')
+
+    def get_scales(self,datas):       
+        
+        self.Ur          = self.model.Ur
+        self.Uro         = self.model.Ur[:self.nobs,:]
+        self.Url         = self.model.Ur[self.nobs:,:]
+        self.Pro         = self.Uro.dot(jnp.eye(self.Ur.shape[1])+self.Url.T.dot(self.Url)).dot(self.Uro.T)
+        self.Prl         = (jnp.eye(self.Url.shape[1])+self.Url.dot(self.Url.T)).dot(self.Url.dot(self.Uro.T))
+        prec = self.model.prec
+        for i,f,_ in [[0,self.nobs,'o'],[self.nobs,self.model.M.shape[0],'l']]:
+            u, s, vt          = jnp.linalg.svd(self.Ur[jnp.arange(i,f),:])
+            setattr(self,'B'+_+'r',u[:,:len(s)][:,s>=prec])
+            setattr(self,'B'+_+'n',jnp.hstack((u[:,:len(s)][:,s<prec],u[:,len(s):]))) 
+            
+        self.Un          = self.model.Un
+        self.Uno         = self.model.Un[:self.nobs,:]
+        self.Unl         = self.model.Un[self.nobs:,:]
+
+        for _ in ['Uro','Url','Uno','Unl']:
+            u, s, vt  = jnp.linalg.svd(getattr(self,_).T)
+            setattr(self,_+'r',u[:,:len(s)][:,s>=prec])
+            setattr(self,_+'n',jnp.hstack((u[:,:len(s)][:,s<prec],u[:,len(s):])))
+            e, p  = jnp.linalg.eigh(getattr(self,_).dot(getattr(self,_).T))
+            setattr(self,_+'r_',p[:,:len(e)][:,e>=prec])
+            setattr(self,_+'n_',jnp.hstack((p[:,:len(e)][:,e<prec],p[:,len(e):])))
+  
+        fa = jit(lambda dy : jnp.diag(dy).dot(self.Unl.dot(self.Unl.T)).dot(jnp.diag(dy)))
+        fb = jit(lambda dx, dy, gammar : jnp.diag(dy).dot(self.Unl.dot(self.Uno.T.dot(dx)+self.Unl.T.dot(jnp.diag(dy)).dot(gammar))))
+
+        yls = [datas[_][1][:,self.nobs:] for _ in range(len(datas))]
+        xos = [datas[_][1][:,:self.nobs] for _ in range(len(datas))]
+        d = jnp.vstack(yls)
+        A_ = d.T.dot(d)*jnp.reciprocal(len(d))+jnp.cov(d.T)
+        e, P = jnp.linalg.eigh(A_)
+        b_ = d.sum(axis=0)*jnp.reciprocal(len(d))
+        esum = jnp.cumsum(e)/jnp.sum(e)
+        gammar = P[:,esum>self.stol].dot(jnp.diag(jnp.reciprocal(e[esum>self.stol])).dot(P[:,esum>self.stol].T)).dot(b_)
+        P_ = P[:,esum<=self.stol]
+        A = P_.T.dot(jnp.array([jnp.array([jnp.array([fa(dy)  for dy in yl[j+1:,:]-yl[j,:]]).sum(axis=0) \
+                                    for j in range(len(yl)-1)]).sum(axis=0) for yl in yls]).mean(axis=0)).dot(P_)#/(len(d)*(len(d)+1.)/2.)
+        b = P_.T.dot(jnp.array([jnp.array([jnp.array([fb(dx,dy,gammar) for dx,dy in zip(xo[j+1:,:]-xo[j,:],yl[j+1:,:]-yl[j,:])]).sum(axis=0) \
+                                                     for j in range(len(yl)-1)]).sum(axis=0) for xo,yl in zip(xos,yls)]).mean(axis=0))#/(len(d)*(len(d)+1.)/2.)
+        self.scales =  -P_.dot(jnp.linalg.pinv(A).dot(b))+gammar
+        self.res    =  jnp.concatenate([((yl*(self.scales))**2).sum(axis=1) for yl in yls]).mean()
+        return self.scales
             
     def _sparams(self):
         if self.mode == 'forward':
@@ -99,10 +146,11 @@ class TrainerCV(object):
     def send_parameters(self):
         if  self.mode == 'inverse':
             if self.scale:
-                nn_par, model_params_, scale = self.params
+                #nn_par, model_params_ = self.params#, scale = self.params
+                nn_par, model_params_, scale = self.params # 
             else:
                 nn_par, model_params_ = self.params
-            self.model.params = [jnp.exp(model_params_[0])]
+            self.model.params = [model_params_[0]]
             for i, _ in enumerate(nn_par):
                 self.nn[i].set_params(_)
         else:
@@ -117,7 +165,7 @@ class TrainerCV(object):
             self.hessian = lambda data : self.hessian_model(self.params[0], \
                                             self.params[1], self._sparams(), data)
         if data:
-            print(self.loss(self.params, self._sparams(), data ))
+            #print(self.loss(self.params, self._sparams(), data ))
             self.eval_hessian = lambda : self.hessian(data)
 
     def reinit(self,nn=False):
@@ -130,6 +178,7 @@ class TrainerCV(object):
     def rejit(self,bind_hessian=True):
         # 're'JIT in case static memory maps have changed
         self.err_fun = jit(lambda params, sparams, batch : self._err_fun(params, sparams, batch))
+        self.res_fun = jit(lambda params, sparams, batch : self._res_fun(params, sparams, batch))
         self.loss = jit(self._loss) 
         f = lambda params, sparams, batch : jnp.nan_to_num(self.loss(params, sparams, batch))
         self.grads = jit(grad(f, argnums=0))
@@ -166,23 +215,30 @@ class TrainerCV(object):
         
     def get_state(self,state):
         iter_data = self.iter_data[state]
-        self.iter_data += [[self.epoch,[self.params.copy()],[self._sparams()],[self.errors.copy()],[repr(self._opt),self._opt_kwargs]]]
+        #self.iter_data += [[self.epoch,[self.params.copy()],[self._sparams()],[self.errors.copy()],[repr(self._opt),self._opt_kwargs]]]
         self.epoch      = iter_data[0]
         self.params     = iter_data[1][0]
         self.errors     = iter_data[3][0]
-        self.iter_data += [[self.epoch,[self.params.copy()],[self._sparams()],[self.errors.copy()],[repr(self._opt),self._opt_kwargs]]]
+        try:
+            self.mle        = iter_data[3][1]
+        except:
+            self.mle        = []
+        self.iter_data += [[self.epoch,[self.params.copy()],[self._sparams()],[self.errors.copy(),self.mle.copy()],[repr(self._opt),self._opt_kwargs]]]
         
     def train(self, data, frac=1., shuffle=False, alpha=1, beta= 0., extfuns=[]):
         
         if not self.__isinitialized__:
             self.initialize()
             self.__isinitialized__ = True
+            self.scales = self.get_scales(data)
         elif not self.__hasoptimizer__:
             raise Exception('Optimizer not defined.')
         else:
             pass
         self.alpha = alpha 
         self.beta  = beta
+
+        data = [[d[0],d[1]*jnp.concatenate((jnp.ones(self.nobs),self.scales))]+d[2:] for d in data]
         
         if self.mode == 'inverse':
             data = [[_[:int(jnp.floor(d[0].shape[0]*frac)),:] for _ in d] for d in data]
@@ -193,6 +249,7 @@ class TrainerCV(object):
         itercount = itertools.count()        
         if not self.batch_size:
             self.batch_size = 1.
+        #self.iter_data += [[[self._get_params(self._opt_state).copy()],[self._sparams()],[]]]
         self.error = jnp.inf
         self._epoch = 0
         log_error = 0.
@@ -215,6 +272,8 @@ class TrainerCV(object):
             else:
                 batch_train = batch_test = batch
             
+            #batch = [_[:data[0].shape[0],:] for _ in data]
+            
             for i in range(int(self.num_iter)):
                 self._opt_state = self.step(next(itercount), self._opt_state, self._sparams(), batch_train) 
                 
@@ -222,19 +281,47 @@ class TrainerCV(object):
             
             loss_it_sample              = self.loss(self.params, self._sparams(), batch_train)    
             loss_it_test                = self.loss(self.params, self._sparams(), batch_test)    
-            self.error = loss_it_batch  = self.loss(self.params, self._sparams(), data )
+            self.error = loss_it_batch  = self.loss(self.params, self._sparams(), data)
             self.errors = self._rescale([_.mean() for _ in self.err_fun(self.params, self._sparams(), data)],self._sparams())
+            #print(self._mle_fun(self.params, self._sparams(), data))
+            self.mles += [self._mle_fun(self.params, self._sparams(), data)]
+            #print('mle',self.mles[-1])
             print('Epoch: {:4d}, Loss Batch: {:.5e}, Loss Data: {:.5e} Loss CV: {:.5e}'.format(self.epoch,loss_it_sample,loss_it_batch, loss_it_test)+\
                      ''.join([', Fit {}: {:.5e}'.format(_,__) for _,__ in zip(self.err_tags,self.errors)]))
+            #print('w: {:.5e}'.format(self.params[-1]))
+            #print(self._sparams())
+#             if  self.mode == 'inverse':
+#                 if self.scale:
+#                     nn_par, self.model.params, scales = self.params
+#                 else:
+#                     nn_par, self.model.params = self.params
+#                 for i, _ in enumerate(nn_par):
+#                     self.nn[i].params = _
+#             else:
+#                 for i, _ in enumerate(self.params[0]):
+#                     self.nn[i].params = _
             self._epoch += 1
             self.epoch  += 1
             if jnp.linalg.norm([jnp.log(_) for _ in self.errors])>log_error:
                 self.best_params['error']  = self.errors
                 self.best_params['params'] = self.params.copy()
-        if self.__historian__:
-            self.images     += [self.epoch]
-            self.iter_data  += [[self.epoch,[self.best_params['params'].copy()],\
-                                 [self._sparams()],[self.best_params['error']],[repr(self._opt),self._opt_kwargs]]]
+            #if self.best_params['error']>loss_it_test:
+            #    self.best_params['error']  = loss_it_test
+            #    self.best_params['params'] = self.params.copy()
+            if self.__historian__:
+                self.images     += [self.epoch]
+                print('mle',self.mles[-1])
+                xs_sm = []
+                for i, (nn_params, batch) in enumerate(zip(self.params[0],  data)):
+                    t, (x_sm, x), (x_sm_dt, x_pm_dt) = self._get_state(batch, nn_params, self.params[1], i)#, self.params[2]
+                    xs_sm += [x_sm]
+                
+                self.iter_data  += [[self.epoch,[self.best_params['params'].copy()],\
+                                    [self._sparams()],[self.best_params['error'],self.mles[-1].copy()],\
+                                        [repr(self._opt),self._opt_kwargs],self.res_fun(self.params, self._sparams(), data),xs_sm.copy()]]
+            #self.iter_data  += [[self.epoch,[self.params.copy()],[self._sparams()],[self.errors.copy()],[repr(self._opt),self._opt_kwargs]]]
+        #self.params = self.best_params['params']
         self.bind_hessian(data)
         self.send_parameters()
+
 
