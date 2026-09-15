@@ -161,6 +161,8 @@ CI covers Linux, macOS and Windows, supported dependency combinations, numerical
 
 During MLE training, KINNs estimates covariance from sampled residuals and propagates state and parameter uncertainty through the kinetic model. The resulting inverse covariance matrices weight the data and physics residuals. They are refreshed between training cycles and held fixed within each block of parameter updates, as described in the [MLE paper](https://arxiv.org/abs/2304.05991).
 
+The [mathematical formulation](#mathematical-formulation) below explains the residuals, SVD projection and covariance updates.
+
 The comparison below shows this adaptive trajectory alongside the regularization sweep from the [original fixed-alpha formulation](https://doi.org/10.48550/arXiv.2011.14473), evaluated in the same likelihood coordinates.
 
 <p align="center">
@@ -210,24 +212,102 @@ The original fixed-alpha Pareto studies are retained in:
 
 The corresponding Python sources are [kinn_datagen_reg.py](./paper/kinn_datagen_reg.py) and [kinn_plotsgen_reg.py](./paper/kinn_plotsgen_reg.py). The original kinetic model, neural network, and training loop live in [kinn/basis](./kinn/basis); the paper-specific constraints, loss, and benchmark systems are in [trainer_source.py](./paper/trainer_source.py).
 
+## Mathematical formulation
 
-## MLE, SVD and automatic variance propagation
+The equations connect the [KINNs playground](https://www.gabrielgusmao.com/blog/kinns-playground/) to the [original fixed-weight formulation](https://doi.org/10.48550/arXiv.2011.14473) and the [MLE paper](https://arxiv.org/html/2304.05991v2). Here the notation follows the Python package: states are $`x`$, neural parameters are $`\theta`$, and log-rate constants are $`p=\ln k`$.
 
-The [rKINNs paper](https://arxiv.org/abs/2304.05991) describes the MLE and SVD extension implemented in [basis/mle.py](./kinn/basis/mle.py). For a stoichiometric matrix $`M`$, the kinetic model is $`\dot{x}=M r(x,p)`$, where $`p=\ln(k)`$. An SVD separates the reactive coordinates from conserved coordinates:
+### Kinetics and neural residuals
 
-```math
-M = U_r D_r V_r^T, \qquad U_n^T M = 0,
-\qquad \frac{d}{dt}(U_n^T x)=0.
-```
-
-The SVD-constrained surrogate represents this conservation structure. In inverse mode, MLE training estimates covariance from the current residuals and uses inverse covariance matrices to weight agreement with the observations and the kinetic model. This replaces the fixed scalar data/physics weight used in the original Pareto studies. In forward mode, covariance weighting applies to the physics residual alone.
-
-For inverse MLE problems with independent state and log-rate errors, the local RHS covariance is propagated through $`J_x=\partial f/\partial x`$ and $`J_p=\partial f/\partial p`$:
+For the CLI's mass-action models, `stoichiometry` supplies $`M`$ with one column per directed reaction:
 
 ```math
-\Sigma_f(t) = J_x(t)\Sigma_x J_x(t)^T + J_p(t)\Sigma_p J_p(t)^T.
+\dot{x}=f(x,p)=M r(x,p),\qquad
+r_j(x,p)=e^{p_j}\prod_{s:M_{sj}<0}x_s^{-M_{sj}}.
 ```
 
-General `kinn run` MLE results report empirical error covariances, with explicit numerical-regularization diagnostics and, for inverse problems, sensitivity-rank diagnostics. These are not posterior credible intervals or calibrated parameter confidence intervals. Both forward methods keep rates fixed; `method: "fixed"` retains the original objective without covariance estimation. See the [variance and result guide](./docs/cli.md#results-and-variance-propagation) for the assumptions and scope.
+The surrogate $`\hat{x}_\theta(t)`$ represents the trajectory; JAX differentiates it with respect to time. With observations $`y_i`$ at times $`t_i`$ and physics collocation times $`\tau_j`$, the residuals are
 
-The original rKINNs [notebook](./paper/rkinn.ipynb) and [Python source](./paper/rkinn.py) are retained alongside the KINNs reference material.
+```math
+e_{d,i}=H\hat{x}_\theta(t_i)-y_i,\qquad
+e_{m,j}=\frac{d\hat{x}_\theta}{dt}(\tau_j)
+        -f(\hat{x}_\theta(\tau_j),p).
+```
+
+$`H`$ selects `observed_species`. In **forward** mode, training adjusts the neural trajectory with supplied rates and initial conditions; there is no data residual. In **inverse** mode, it also fits $`p`$, with $`k=\exp(p)`$ keeping rates positive. Each dataset has its own trajectory and shares the kinetic parameters.
+
+### Fixed-alpha weighting
+
+```math
+J_{\mathrm{fixed}}=j_m+\alpha j_d,\qquad
+j_m=\operatorname{MSE}(e_m),\quad j_d=\operatorname{MSE}(e_d).
+```
+
+The MSEs average over samples and residual components. `training.alpha` stays constant within an inverse `fixed` run; repeating fits at different values traces the regularization path. Forward `fixed` minimizes only $`j_m`$.
+
+### Conservation and SVD coordinates
+
+An SVD separates changing and conserved coordinates:
+
+```math
+M=U_r D_r V_r^T,\qquad U_n^T M=0,\qquad
+\frac{d}{dt}(U_n^T x)=0.
+```
+
+The MLE surrogate incorporates this decomposition and the surface-site constraint. Physics residuals and their covariance are projected into the same reactive subspace:
+
+```math
+\rho_{m,j}=U_r^T e_{m,j},\qquad C_{m,j}=U_r^T\Sigma_{f,j}U_r.
+```
+
+For data, the implementation first restricts covariance to observed species, then projects it into the corresponding independent coordinates. This avoids treating unobserved species as measured. Removing conservation-induced redundant directions improves covariance conditioning; SVD alone does not make an arbitrary covariance diagonal.
+
+### MLE weighting from sampled errors
+
+For a zero-mean Gaussian residual $`\rho`$ with covariance $`C`$, its negative log-likelihood, up to a constant, is
+
+```math
+g(\rho,C)=\frac12\left(\rho^T C^{-1}\rho+\log\det C\right).
+```
+
+With $`N_d`$ observations and $`N_m`$ collocation points, averaging the data and physics blocks separately gives
+
+```math
+\bar\ell=
+\frac1{N_d}\sum_{i=1}^{N_d}g(\rho_{d,i},C_d)
++\frac1{N_m}\sum_{j=1}^{N_m}g(\rho_{m,j},C_{m,j}).
+```
+
+The CLI optimizes the quadratic terms with covariance held fixed during each optimizer block, then refreshes the covariance from current residuals and sensitivities. The log-determinant terms are constant within that block and are omitted from its gradient objective. Separate experiments are averaged. Forward MLE uses only the physics block and estimates its covariance from sampled physics defects.
+
+For inverse solves, the current driver uses state-residual second moments,
+
+```math
+\Sigma_x=\frac1N\sum_{i=1}^N e_{x,i}e_{x,i}^T,
+```
+
+and centered sample covariance for locally inferred log-rate errors. State residuals include inferred latent components where needed. The paper also discusses centered covariance and residual-mean stabilization; the general CLI uses the estimators described here, with OAS shrinkage and an eigenvalue floor when constructing inverse covariance weights. The [implementation notes](./docs/cli.md#results-and-variance-propagation) describe these choices.
+
+Thus MLE adapts a **matrix of residual weights across species and time**, through sampled errors and kinetic sensitivities. It does not update a scalar alpha, and covariance need not decrease monotonically during training.
+
+### Automatic variance propagation and rate uncertainty
+
+For inverse MLE, linearize the kinetic model around the current trajectory and log-rate parameters:
+
+```math
+\delta f\simeq J_x\delta x+J_p\delta p,\qquad
+J_x=\frac{\partial f}{\partial x},\quad
+J_p=\frac{\partial f}{\partial p}.
+```
+
+Assuming independent state and log-rate errors gives the local propagation used by default:
+
+```math
+\Sigma_f(t)\simeq
+J_x(t)\Sigma_x J_x(t)^T+J_p(t)\Sigma_p J_p(t)^T,
+\qquad
+\Sigma_k\simeq\operatorname{diag}(k)\Sigma_p\operatorname{diag}(k).
+```
+
+`uncertainty.representation_error: true` additionally accounts for the neural derivative's state linearization when forming residual weights. The reported state, log-rate, rate and RHS covariances describe local empirical errors. The paper's parameter confidence intervals additionally use likelihood-Hessian/Fisher-information analysis; general `kinn run` does not currently export those intervals. Rank-deficient kinetic sensitivities are reported explicitly, with `null` rate-error covariance. Forward rates remain fixed, and `fixed` runs do not estimate covariance.
+
+The original rKINNs [notebook](./paper/rkinn.ipynb), [Python source](./paper/rkinn.py), and [MLE routines](./kinn/basis/mle.py) retain the research formulation. See the [variance and result guide](./docs/cli.md#results-and-variance-propagation) for the scope of general CLI outputs.
