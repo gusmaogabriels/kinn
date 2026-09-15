@@ -4,7 +4,7 @@ Install the repository with Python 3.11 or newer (`python -m pip install .`). Th
 
 ## Choose the training formulation and problem
 
-The `method` field selects how `kinn` weights its residuals: `fixed` uses a chosen data/physics weight (`training.alpha`), while `mle` adapts covariance weights during training (the default). The latter includes the variance propagation and SVD extension developed on the `rkinns` research branch. Both are options in the same package and CLI.
+The `mode` field selects a forward or inverse problem. Independently, `method` selects residual weighting: `fixed` uses the original MSE objective with a chosen data weight (`training.alpha`) for inverse problems, while `mle` adapts covariance weights during training (the default). The latter includes the variance propagation and SVD extension developed on the `rkinns` research branch. Both are options in the same package and CLI.
 
 | `method` | `mode` | Estimated quantities | Training objective |
 | --- | --- | --- | --- |
@@ -21,7 +21,7 @@ kinn validate problem.json
 kinn run problem.json --output result.json
 ```
 
-Use `--method fixed` for the original formulation, `--mode forward` for known rates, or `--kind homogeneous` for the A ⇌ B example. `python -m kinn` is equivalent to `kinn`. The generated examples are analytic reference problems with true rates `[2, 1]`; inverse inputs start at `[1.5, 0.7]`.
+On `kinn example`, use `--method fixed` for the original formulation, `--mode forward` for known rates, or `--kind homogeneous` for the A ⇌ B example. These flags generate the JSON input; `kinn run` reads `method` and `mode` from that file. `python -m kinn` is equivalent to `kinn`. The generated examples are analytic reference problems with true rates `[2, 1]`; inverse inputs start at `[1.5, 0.7]`.
 
 `kinn capabilities` describes the supported model, methods and commands. `kinn schema` prints the bundled JSON Schema. `kinn validate` additionally checks matrix dimensions, site conservation, observations and time ordering without loading JAX or training a model.
 
@@ -65,7 +65,7 @@ For A + * ⇌ A*, use:
 
 This fragment belongs inside a complete problem such as `kinn example --kind adsorption`. The bulk state and surface coverage must use compatible normalization for the supplied stoichiometry; the CLI does not infer concentration-to-site-density factors. `units` records labels without performing conversions.
 
-In forward mode, supply `rate_constants` and a full `initial_state` for every dataset. These rates remain fixed throughout optimization. In inverse mode, supply `initial_rate_constants`, `observed_species` and measured `values`; the rates are optimized in log space. `values` rows follow `times`, and columns follow `observed_species`. Measurements must be calibrated. Observations can cover all nonsurface species, or all species. Species and observation order are normalized internally, then predictions are returned in the input `species` order.
+In forward mode, supply `rate_constants` and a full `initial_state` for every dataset. These rates remain fixed throughout optimization under either method; measured `values` are rejected. In inverse mode, supply `initial_rate_constants`, `observed_species` and measured `values`; the rates are optimized in log space. `values` rows follow `times`, and columns follow `observed_species`. Measurements must be calibrated. Observations can cover all nonsurface species, or all species. Species and observation order are normalized internally, then predictions are returned in the input `species` order.
 
 An inverse `initial_state` is optional. When supplied, it is an exact initial condition for the surrogate, including latent species. Without it, `fixed` learns an unconstrained initial state; homogeneous `mle` fixes conserved quantities from the mean observed state, and surface `mle` uses its original latent conserved-coordinate parameterization. No unobserved initial state is filled with an assumed zero.
 
@@ -81,17 +81,17 @@ Known initial conditions use the original tanh boundary gate. `surrogate.boundar
 
 | Training field | Default | Meaning |
 | --- | --- | --- |
-| `epochs` | 300 | Maximum covariance/training cycles |
+| `epochs` | 300 | Maximum training cycles; MLE refreshes covariance weights between cycles |
 | `steps_per_epoch` | 100 | Compiled optimizer steps per cycle |
-| `warmup_steps` | 1000 | Data-fit initialization for inverse problems; zero disables it |
+| `warmup_steps` | 1000 | Data-fit initialization for inverse problems; zero disables it; unused in forward mode |
 | `learning_rate` | 0.001 | Adam initial learning rate |
 | `learning_rate_schedule` | `cosine` | Decay to 1% of the initial rate; `constant` is also supported |
 | `seed` | 0 | Reproducible initialization; each dataset gets a separate seed |
 | `physics_tolerance` | 0.01 | Absolute RMS state-derivative residual in input time units |
-| `data_tolerance` | 0.01 | Absolute RMS residual over measured species |
-| `alpha` | 1 | Data MSE weight for `fixed` only |
+| `data_tolerance` | 0.01 | Absolute RMS residual over measured species; inverse mode only |
+| `alpha` | 1 | Constant data MSE weight for inverse `fixed`; no effect in forward mode; rejected for `mle` |
 
-The supplied `fixed` inverse examples explicitly use `alpha: 100` and `data_tolerance: 0.0005`. Their weighting is illustrative; data scales, noise and identifiability determine appropriate settings. For a Pareto study, repeat the same `fixed` input with several positive `alpha` values. `mle` replaces this manual weight with covariance updates. Both methods still require architecture and optimizer choices.
+The supplied `fixed` inverse examples explicitly use `alpha: 100` and `data_tolerance: 0.0005`. Their weighting is illustrative; data scales, noise and identifiability determine appropriate settings. Alpha remains constant within one `kinn run`. For a Pareto study, repeat the same inverse `fixed` input with several positive `alpha` values. Forward `fixed` has no data term. MLE adapts covariance matrices rather than a scalar alpha, so omit `training.alpha` when switching to `mle`. Both methods still require architecture and optimizer choices.
 
 Time is shifted by each dataset's first observation and divided by a common maximum duration. The physical RHS is multiplied by that duration; the stoichiometric matrix and mass-action exponents are unchanged. Reported times, derivatives, rate constants and propagated RHS covariance use the input time scale.
 
@@ -103,7 +103,7 @@ Successful runs return JSON with the selected method and mode, rates, log rates,
 
 Inverse `mle` estimates state residual second moments and local log-rate error covariances, applies oracle approximating shrinkage (OAS) when constructing covariance weights, and propagates error through model Jacobians. The result includes state, log-rate, rate and time-dependent RHS error covariance. Rate covariance is the first-order log-to-rate transformation. The propagated covariance assumes independent state and log-rate errors; cross covariance is not included.
 
-These are **empirical local error estimates, not posterior credible intervals or calibrated confidence intervals for the fitted parameter estimator**. The CLI does not currently expose Hessian/profile-likelihood confidence intervals or bootstrap coverage estimates. A rank-deficient kinetic sensitivity matrix is reported explicitly and rate-error covariance is `null` rather than presenting unidentified directions as zero uncertainty. Full-state sensitivity rank does not establish identifiability from partial measurements.
+These are **empirical local error estimates, not posterior credible intervals or calibrated confidence intervals for the fitted parameter estimator**. General `kinn run` results do not include Hessian/profile-likelihood intervals or bootstrap coverage estimates. General solves currently return final covariances and RMSE history without neural checkpoints. The separate [paper reproduction commands](./reproduction.md) export fixed-weight reference parameters and saved stages. A rank-deficient kinetic sensitivity matrix is reported explicitly and rate-error covariance is `null` rather than presenting unidentified directions as zero uncertainty. Full-state sensitivity rank does not establish identifiability from partial measurements.
 
 `uncertainty.representation_error: true` also includes the neural derivative's state linearization when forming residual weights. It is available only for `mle` and increases derivative/compilation work. Numerical inversion uses an eigenvalue floor of `max(1e-12, 1e-8 * largest absolute eigenvalue)` separately from OAS shrinkage. Forward `mle` reports the surrogate's physics-defect covariance; fixed input rates have no estimated uncertainty. The `fixed` objective does not estimate covariance.
 

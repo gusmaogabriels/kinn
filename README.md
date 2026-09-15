@@ -1,6 +1,6 @@
 # kinn: Kinetics-Informed Neural Networks
 
-`kinn` fits neural-network trajectories to kinetic models and measurements. Given rate constants, it solves a forward problem; given measurements, it estimates the rate constants and trajectories together. The package includes MLE covariance weighting, automatic variance propagation and SVD conservation constraints, as well as the original fixed-weight loss for Pareto studies.
+`kinn` fits neural-network trajectories to kinetic models and measurements using JAX. It supports forward problems with known rate constants and inverse problems that estimate rates from measurements. Both modes support fixed residual weighting or MLE adaptive covariance weighting. The MLE formulation includes SVD conservation constraints and, for inverse problems, automatic variance propagation.
 
 ## Run locally
 
@@ -21,7 +21,7 @@ On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead. Insta
 Generate an adsorption example, check its inputs, and solve the inverse problem:
 
 ```sh
-kinn example --mode inverse --kind adsorption --output inverse.json
+kinn example --method mle --mode inverse --kind adsorption --output inverse.json
 kinn validate inverse.json
 kinn run inverse.json --output inverse-result.json
 ```
@@ -31,54 +31,66 @@ The example describes A + * ⇌ A*, observes the bulk species A, and supplies a 
 ### Fit a trajectory with known rate constants
 
 ```sh
-kinn example --mode forward --kind homogeneous --output forward.json
+kinn example --method mle --mode forward --kind homogeneous --output forward.json
 kinn validate forward.json
 kinn run forward.json --output forward-result.json
 ```
 
-This example fits a neural trajectory for A ⇌ B with fixed rates `[2, 1]` and initial state `[1, 0]`. Forward training matches the network's time derivative to the kinetic model while enforcing the supplied initial state.
+This example fits a neural trajectory for A ⇌ B with known rates `[2, 1]` and initial state `[1, 0]`. Forward training matches the network's time derivative to the kinetic model while enforcing the supplied initial state. Rates remain unchanged under either training method; forward inputs contain no measured `values`.
 
 ### Choose the training objective
 
-Both problem modes use the same `kinn` package and command. The default uses MLE covariance weighting and SVD. The `method` field selects the training objective and its associated original surrogate parameterization:
+`mode` selects what is fitted; `method` selects the residual weighting and its associated original surrogate parameterization. These are independent choices in one package, `kinn`. When `method` is omitted, it defaults to `mle`.
 
-| Training option | Example flag / JSON value | Behavior |
-| --- | --- | --- |
-| MLE adaptive covariance (default) | `--method mle` / `"method": "mle"` | Update covariance weights during training, propagate local errors through kinetic Jacobians, and use the SVD-constrained surrogate |
-| Fixed weighting | `--method fixed` / `"method": "fixed"` | Minimize physics MSE + `alpha` × data MSE; vary `training.alpha` for a Pareto study |
+| `mode` | `method` | Fitted quantities | Objective |
+| --- | --- | --- | --- |
+| `forward` | `fixed` | Neural trajectory; supplied rates stay fixed | Physics MSE |
+| `forward` | `mle` | Neural trajectory; supplied rates stay fixed | Physics residual with adaptive covariance weighting |
+| `inverse` | `fixed` | Neural trajectory and rate constants | Physics MSE + `alpha` × data MSE |
+| `inverse` | `mle` | Neural trajectory and rate constants | Data and physics residuals with adaptive covariance weighting and local variance propagation |
 
-For example, `kinn example --method fixed --mode inverse --output weighted.json` generates an input for the original fixed-weight objective. With `fixed`, `training.alpha` is your chosen weight; with `mle`, the residual covariances determine the weighting automatically.
+To generate inputs for the original fixed-weight formulation:
+
+```sh
+kinn example --method fixed --mode forward --kind homogeneous --output fixed-forward.json
+kinn example --method fixed --mode inverse --kind adsorption --output fixed-inverse.json
+kinn validate fixed-inverse.json
+kinn run fixed-inverse.json --output fixed-inverse-result.json
+```
+
+For inverse `fixed` problems, `training.alpha` is a positive scalar held constant throughout one `kinn run`. It defaults to `1`; the generated fixed inverse examples explicitly choose `100`. Repeat the same problem with different alpha values to study the data/physics tradeoff. Forward `fixed` problems have no data term, so alpha has no effect.
+
+MLE updates covariance matrices during training, rather than tuning a scalar alpha. Omit `training.alpha` for `mle`; validation rejects it. Architecture, learning rate and training budget remain configurable for both methods.
+
+`--method` and `--mode` are flags for `kinn example`. To solve your own input, set `method` and `mode` inside the JSON; `kinn run` reads them from that file.
 
 ## Reproduce the paper experiments
 
-The CLI includes the original four mechanisms, both initial conditions, and 21 saved training archives. Re-evaluate an experiment locally, or export every archive with its trajectories, derivatives, parameters, calibration scales and Pareto history:
+The CLI includes the original four mechanisms, both initial conditions, and 21 saved fixed-weight training archives. Re-evaluate a reference experiment with its trajectories, derivatives, parameters, calibration scales and Pareto history:
 
 ```sh
 python -m pip install ".[reproduce]"
 kinn reproduce list
 kinn reproduce run trainer_invvwn_3_alpha13 --output paper-example --plots
-kinn reproduce run all --output paper-results --plots
-kinn reproduce verify --output paper-verification.json
 ```
 
-The verification compares all 184 numerical entries in Tables 3–5 of the original paper. **183 match the printed rounding.** The noisy homogeneous log-rate MAE differs: the saved parameters give `0.022917`, while Table 5 prints `0.000229`. `verify` reports the difference and exits with status 1.
-
-Fresh training is also available with the saved architectures and stage schedules:
+Fresh fixed-weight training is also available with the saved architectures and stage schedules:
 
 ```sh
 kinn reproduce plan trainer_fwd_0_alpha13 --output training-plan.json
 kinn reproduce train trainer_fwd_0_alpha13 --output fresh-forward --plots
 ```
 
-Archive evaluation and training afresh are recorded separately. Full reproduction of both papers is still incomplete: MLE reference archives are missing, and the notebook's calibration, covariance-history and Hessian uncertainty workflow needs further CLI validation. The [reproduction guide](./docs/reproduction.md) documents coverage, checkpoint selection, numerical differences and the files each command writes.
+Evaluating a saved archive and training afresh are separate operations. These reference commands currently cover the fixed-weight paper experiments; full reproduction of both papers remains incomplete. The [reproduction guide](./docs/reproduction.md) describes the available experiments, checkpoint selection and exported files. General forward and inverse problems with MLE weighting use `kinn run` as shown above.
 
 ## Define a kinetic problem
 
-Inputs describe the mechanism, datasets and surrogate architecture. A complete forward input for A ⇌ B is:
+Inputs describe the mechanism, datasets and surrogate architecture. A complete forward input for A ⇌ B with MLE covariance weighting is:
 
 ```json
 {
   "schema_version": 1,
+  "method": "mle",
   "mode": "forward",
   "species": ["A", "B"],
   "stoichiometry": [[-1, 1], [1, -1]],
@@ -99,9 +111,9 @@ The stoichiometric matrix has **species rows and directed reaction columns**. Ne
 
 For surface mechanisms, include adsorbates and vacant sites in `species` and identify them in `surface_species`. The current CLI supports one conserved site balance with equal site occupancy: the surface rows must sum to zero in every reaction column, and initial surface fractions must sum to one. Bulk concentrations and surface fractions must use compatible normalization for the supplied matrix.
 
-Inverse inputs supply `initial_rate_constants`, `observed_species`, and `values` or a CSV `data_file` for each dataset. Observations may cover all bulk species or all species. Multiple datasets can have different time grids and separate neural trajectories while sharing kinetic parameters. A supplied `initial_state` is enforced exactly; it is required for forward problems and optional for inverse problems.
+Forward inputs supply `rate_constants` and a full `initial_state` for every dataset. Inverse inputs instead supply `initial_rate_constants`, `observed_species`, and `values` or a CSV `data_file` for each dataset. Observations may cover all bulk species or all species. Multiple datasets can have different time grids and separate neural trajectories while sharing kinetic parameters. A supplied `initial_state` is enforced exactly; it is required for forward problems and optional for inverse problems.
 
-Set hidden-layer widths with `surrogate.layers`. Activations may be one name for all layers or a list with one name per layer: `tanh`, `sigmoid`, `swish`, `softplus`, `sin` or `gaussian`. Training settings include epochs, optimizer steps per epoch, learning rate, seed and residual tolerances.
+Set hidden-layer widths with `surrogate.layers`. Activations may be one name for all layers or a list with one name per layer: `tanh`, `sigmoid`, `swish`, `softplus`, `sin` or `gaussian`. Training settings include epochs, optimizer steps per epoch, learning rate, seed and residual tolerances. `training.warmup_steps` initializes the data fit in inverse mode. Forward convergence uses `physics_tolerance`; inverse convergence also requires `data_tolerance`.
 
 The input contract currently covers closed, isothermal, well-mixed mass-action systems. Arbitrary rate laws, multiple surface site types and partial observations of bulk species need extensions to that contract. See the [CLI and input guide](./docs/cli.md) for the full settings, units and constraints; the [examples](./examples) contain complete inputs.
 
@@ -115,20 +127,23 @@ from kinn import solve
 result = solve("inverse.json")
 print(result["status"])
 print(result["rate_constants"])
-print(result["uncertainty"]["datasets"][0]["rate_error_covariance"])
+print(result["uncertainty"])
 ```
 
 | Result field | Contents |
 | --- | --- |
+| `mode`, `method` | The problem mode and training method used |
 | `status` | Whether residual tolerances and sampled physical checks passed |
-| `rate_constants`, `log_rate_constants` | Final kinetic parameters in reaction-column order |
+| `rate_constants`, `log_rate_constants` | Supplied rates in forward mode, fitted rates in inverse mode; reaction-column order |
 | `predictions` | Times and predicted states for each dataset, in input species order |
 | `history` | Epoch, data RMSE and physics RMSE throughout training |
-| `uncertainty` | Final empirical covariance estimates and their scope; available for MLE training |
+| `uncertainty` | Final empirical covariance estimates for MLE; `method: "not_estimated"` for fixed weighting |
 | `physical_checks` | Sampled nonnegativity and surface-site balance checks |
 | `timing` | Setup, first-epoch, warm execution and total solve timings |
 
-Inverse MLE results include state-residual, log-rate, rate and time-dependent kinetic-RHS error covariance. Covariance weights are recalculated during training. The current JSON output stores the final covariance matrices and RMSE history; NN weights, reloadable checkpoints, parameter/covariance histories and the notebook's Hessian uncertainty analysis are not yet exposed by the CLI.
+Inverse MLE results include state-residual, log-rate, rate and time-dependent kinetic-RHS error covariance. Rank-deficient kinetic sensitivities produce `null` rate-error covariances with a diagnostic. Forward MLE results report `physics_defect_covariance`; they do not estimate uncertainty in the supplied rates. Fixed weighting does not estimate covariance in either mode.
+
+For general problems, `kinn run` stores final results and RMSE history, but does not yet export neural weights, reloadable checkpoints or parameter/covariance histories. The separate `kinn reproduce` commands export the fixed-weight reference experiment parameters and saved stages; see the [reproduction guide](./docs/reproduction.md). These paper-specific exports have a different scope from a general solve.
 
 For programs and agents, `kinn capabilities` describes supported operations and `kinn schema` prints the JSON Schema. `kinn validate` checks the input without importing JAX or training. A run exits with code `0` on convergence with sampled physical checks, `1` on nonconvergence or numerical failure, and `2` on an input or file error. Inspect `status` before using a result.
 
@@ -142,16 +157,26 @@ The first-epoch timing includes compilation on first use. Warm epoch timings inc
 
 CI covers Linux, macOS and Windows, supported dependency combinations, numerical examples, covariance propagation and installation of the built wheel.
 
-## Pareto + Regularization Approach
+## Fixed-alpha Pareto formulation
 
-arXiv: https://doi.org/10.48550/arXiv.2011.14473
+The [original KINNs paper](https://doi.org/10.48550/arXiv.2011.14473) studies the tradeoff between fitting measurements and satisfying the kinetic model. In inverse `fixed` problems, each fit uses physics MSE + `alpha` × data MSE. Sweeping alpha across fits traces the regularization path.
+
+<p align="center">
+  <img src="./misc/gifs/pareto-sweep.gif" alt="Animated fixed-weight Pareto curve showing model and data mean-square errors and the tightening and relaxation turns" width="800"/>
+</p>
+
+*Animated redraw of the published fixed-weight Pareto points in [Figure 2a of the MLE paper](https://arxiv.org/html/2304.05991v2#S2.F2).* Frames reveal the plotted points; they do not represent a new training run. The two marked turns show the tightening and relaxation branches of the sweep.
+
+## MLE training example
+
+The [MLE paper](https://arxiv.org/abs/2304.05991) extends KINNs with adaptive covariance weighting, SVD coordinates and automatic variance propagation. The animation below illustrates inverse fitting for the DCS mechanism.
 
 **Try it live:** an interactive, in-browser version of the KINNs inverse-kinetics solver runs at **[gabrielgusmao.com/blog/kinns-playground](https://www.gabrielgusmao.com/blog/kinns-playground/)**: recover rate constants from noisy transient data with JAX-style autodiff and MLE uncertainty, no install. See also the [Lotka-Volterra Neural ODE](https://www.gabrielgusmao.com/blog/node-lv-playground/) and [pharmacokinetics Neural ODE](https://www.gabrielgusmao.com/blog/pkpd-playground/) playgrounds.
 
-***KINNs training example*** for the *dcs* reaction type
+***KINNs with MLE adaptive covariance*** for the *dcs* reaction type
 
 <p align="center">
-  <img src="./misc/gifs/kinn4.gif" alt="KINNs training: state interpolation, derivative matching, and recovery of kinetic parameters for the dcs reaction system" width="800"/>
+  <img src="./misc/gifs/kinn4.gif" alt="KINNs MLE training: state interpolation, derivative matching, and recovery of kinetic parameters for the dcs reaction system" width="800"/>
 </p>
 
 $`\dot{\mathbf{x}}(t)`$ is obtained by automatic differentiation of the neural-network trajectory $`\mathbf{x}(t)`$ with respect to time $`t`$. The physical model (microkinetic model) is denoted by $`f_{\mathbf{p}}(\cdot)`$, with parameters $`\mathbf{p}=\ln(\mathbf{k})`$.
@@ -176,6 +201,8 @@ The [JAX](https://github.com/jax-ml/jax)-based kinetic models, neural networks a
 
 ## Reference Jupyter Notebooks
 
+The original fixed-alpha Pareto studies are retained in:
+
 1. [Data generation and KINNs training](./paper/kinn_datagen_reg.ipynb).
 2. [Data processing and plot generation](./paper/kinn_plotsgen_reg.ipynb).
 
@@ -191,14 +218,14 @@ M = U_r D_r V_r^T, \qquad U_n^T M = 0,
 \qquad \frac{d}{dt}(U_n^T x)=0.
 ```
 
-The SVD-constrained surrogate represents this conservation structure. MLE training estimates covariance from the current residuals and uses inverse covariance matrices to weight agreement with the observations and the kinetic model. This replaces the fixed scalar data/physics weight used in the original Pareto studies.
+The SVD-constrained surrogate represents this conservation structure. In inverse mode, MLE training estimates covariance from the current residuals and uses inverse covariance matrices to weight agreement with the observations and the kinetic model. This replaces the fixed scalar data/physics weight used in the original Pareto studies. In forward mode, covariance weighting applies to the physics residual alone.
 
-For independent state and log-rate errors, the local RHS covariance is propagated through $`J_x=\partial f/\partial x`$ and $`J_p=\partial f/\partial p`$:
+For inverse MLE problems with independent state and log-rate errors, the local RHS covariance is propagated through $`J_x=\partial f/\partial x`$ and $`J_p=\partial f/\partial p`$:
 
 ```math
 \Sigma_f(t) = J_x(t)\Sigma_x J_x(t)^T + J_p(t)\Sigma_p J_p(t)^T.
 ```
 
-The CLI reports empirical first-order error covariances, with explicit rank and numerical-regularization diagnostics. These are not posterior credible intervals or calibrated parameter confidence intervals. Forward runs keep rates fixed; original KINNs retains its weighted objective without covariance estimation. See the [variance and result guide](./docs/cli.md#results-and-variance-propagation) for the assumptions and scope.
+General `kinn run` MLE results report empirical error covariances, with explicit numerical-regularization diagnostics and, for inverse problems, sensitivity-rank diagnostics. These are not posterior credible intervals or calibrated parameter confidence intervals. Both forward methods keep rates fixed; `method: "fixed"` retains the original objective without covariance estimation. See the [variance and result guide](./docs/cli.md#results-and-variance-propagation) for the assumptions and scope.
 
 The original rKINNs [notebook](./paper/rkinn.ipynb) and [Python source](./paper/rkinn.py) are retained alongside the KINNs reference material.
