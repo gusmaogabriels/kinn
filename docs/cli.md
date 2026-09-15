@@ -1,8 +1,10 @@
-# Local KINNs and rKINNs
+# The local `kinn` CLI
 
 Install the repository with Python 3.11 or newer (`python -m pip install .`). This installs JAX, NumPy, SciPy and Optax, and the `kinn` command. Training and all input/output files stay on the machine running the command. There is no server, telemetry, or account requirement.
 
-## Choose the formulation and problem
+## Choose the training formulation and problem
+
+`kinn` is the package, Python import and CLI command for every configuration below. The `rkinns` research branch introduced the MLE variance propagation and SVD extension to this package. The `method` field selects its training formulation: `rkinn` enables that extension (the default), while `kinn` selects the original fixed-weight objective for Pareto studies. The scientific names KINNs and rKINNs refer to these formulations.
 
 | `method` | `mode` | Estimated quantities | Training objective |
 | --- | --- | --- | --- |

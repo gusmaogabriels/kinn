@@ -1,4 +1,4 @@
-"""Machine-readable, local rKINNs command line interface."""
+"""The local kinn command line interface, including its MLE and SVD extension."""
 import argparse
 import json
 from importlib.resources import files
@@ -54,7 +54,7 @@ def _emit(value, output=None):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Local KINNs and rKINNs: forward trajectories and inverse kinetic parameters.')
+    parser = argparse.ArgumentParser(description='kinn: local forward and inverse kinetics, with fixed or MLE covariance weighting and SVD.')
     parser.add_argument('--version', action='version', version=__version__)
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('schema', help='Print the JSON problem schema.')
@@ -62,7 +62,8 @@ def main(argv=None):
     ex = sub.add_parser('example', help='Print a complete analytic example problem.')
     ex.add_argument('--kind', choices=('homogeneous', 'adsorption'), default='homogeneous')
     ex.add_argument('--mode', choices=('forward', 'inverse'), default='inverse')
-    ex.add_argument('--method', choices=('kinn', 'rkinn'), default='rkinn')
+    ex.add_argument('--method', choices=('kinn', 'rkinn'), default='rkinn',
+                    help='Training formulation within kinn: rkinn = MLE covariance weighting and SVD (default); kinn = original fixed-weight loss.')
     ex.add_argument('--output')
     for command in ('validate', 'run'):
         child = sub.add_parser(command, help='Validate a problem without training.' if command == 'validate' else 'Run the forward or inverse problem locally.')
@@ -74,7 +75,7 @@ def main(argv=None):
             _emit(json.loads(files('kinn').joinpath('schema.json').read_text()))
         elif args.command == 'capabilities':
             from .problem import ACTIVATIONS
-            _emit({'package': 'kinn', 'version': __version__, 'methods': {'kinn': 'Original physics MSE + alpha * data MSE', 'rkinn': 'Automatic covariance-weighted residuals'},
+            _emit({'package': 'kinn', 'version': __version__, 'methods': {'kinn': 'Original fixed-weight loss within kinn: physics MSE + alpha * data MSE', 'rkinn': 'MLE extension within kinn: automatic covariance weighting, variance propagation and SVD'},
                    'modes': ['forward', 'inverse'], 'reactor': 'closed batch, mass-action kinetics',
                    'matrix_layout': 'species by directed elementary reaction; forward and reverse require separate columns',
                    'surface_constraint': 'one conserved site balance including vacant sites',

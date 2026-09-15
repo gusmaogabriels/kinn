@@ -1,28 +1,30 @@
 # KINNs: Kinetics-Informed Neural Networks
 
 
-KINNs solves forward kinetic trajectories and inverse parameter-estimation problems with JAX neural surrogates. Both the original weighted KINNs formulation and robust KINNs (rKINNs) are available through a local Python API and CLI.
+`kinn` solves forward kinetic trajectories and inverse parameter-estimation problems with JAX neural surrogates. The MLE variance propagation and SVD decomposition developed on the `rkinns` branch are included in the same package, alongside the original fixed-weight loss for Pareto studies. Install `kinn`, import `kinn`, and run the `kinn` command.
 
 ## Run locally
 
 ```sh
-git clone https://github.com/gusmaogabriels/kinn.git
+git clone --branch kinn-cli https://github.com/gusmaogabriels/kinn.git
 cd kinn
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install .
 
-kinn example --method rkinn --mode inverse --kind adsorption --output problem.json
+kinn example --mode inverse --kind adsorption --output problem.json
 kinn validate problem.json
 kinn run problem.json --output result.json
 ```
 
-On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead. Python 3.11 or newer is required. Computation runs on your machine. Change `--method` to `kinn` for the original formulation, and `--mode` to `forward` when rate constants are known.
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead. Python 3.11 or newer is required. Computation runs on your machine. The example defaults to MLE covariance weighting with SVD. Use `--mode forward` when rate constants are known.
 
-| Method | Forward problem | Inverse problem | Residual weighting |
-| --- | --- | --- | --- |
-| `kinn` | Fit a trajectory with fixed rates | Fit the trajectory and rate constants | Original physics MSE + `alpha` × data MSE |
-| `rkinn` | Fit a trajectory with fixed rates | Fit the trajectory and rate constants | Automatic covariance weighting and local variance propagation |
+| Training option within `kinn` | Example configuration | Residual weighting |
+| --- | --- | --- |
+| MLE with SVD (default) | `--method rkinn` | Automatic covariance weighting and local variance propagation |
+| Original fixed-weight loss | `--method kinn` | Physics MSE + `alpha` × data MSE |
+
+The `method` values select training formulations inside `kinn`. Both support forward trajectory fitting with fixed rates and inverse fitting of trajectories and rate constants.
 
 Inputs specify species, the stoichiometric matrix, surface species and vacant sites, observations, initial conditions, hidden-layer widths and activation functions. Results contain rates, trajectories, convergence diagnostics, physical checks and timings. `kinn schema` and `kinn capabilities` describe the input contract for programs and agents.
 
@@ -74,9 +76,9 @@ The [JAX](https://github.com/jax-ml/jax)-based kinetic models, neural networks a
 The corresponding Python sources are [kinn_datagen_reg.py](./paper/kinn_datagen_reg.py) and [kinn_plotsgen_reg.py](./paper/kinn_plotsgen_reg.py). The original kinetic model, neural network, and training loop live in [kinn/basis](./kinn/basis); the paper-specific constraints, loss, and benchmark systems are in [trainer_source.py](./paper/trainer_source.py).
 
 
-## Robust KINNs and automatic variance propagation
+## MLE, SVD and automatic variance propagation
 
-[rKINNs](https://arxiv.org/abs/2304.05991) reformulates the inverse problem using maximum-likelihood estimation and SVD coordinates. The CLI builds on the original implementation in [basis/mle.py](./kinn/basis/mle.py), updating covariance weights during training instead of selecting a scalar data/physics weight.
+The [rKINNs paper](https://arxiv.org/abs/2304.05991) describes the MLE and SVD extension implemented in the repository's `rkinns` branch. Its original implementation in [basis/mle.py](./kinn/basis/mle.py) is part of `kinn`; the CLI uses it to update covariance weights during training.
 
 For independent state and log-rate errors, the local RHS covariance is propagated as:
 

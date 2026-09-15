@@ -11,8 +11,9 @@ __version__ = '1.0'
 def solve(problem):
     """Solve a validated JSON file or problem dictionary locally.
 
-    Select ``method='kinn'`` for the original weighted objective, or
-    ``method='rkinn'`` for automatic covariance weighting.
+    Both training formulations belong to this package. Select ``method='kinn'``
+    for the original fixed-weight objective, or ``method='rkinn'`` for the
+    MLE covariance weighting and SVD extension (the default).
     """
     from .problem import load, validate
     normalized = validate(problem) if isinstance(problem, dict) else load(problem)
