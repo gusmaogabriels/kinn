@@ -114,8 +114,8 @@ class model(object):
         else:
             self.batched_eval = jit(vmap(self.single_eval,in_axes=(None,0)))
             self.batched_r    = jit(vmap(self.r,in_axes=(None,0)))
-        self.diff_eval   = jit(lambda params, t : mdiff_state(self.batched_eval,params,t))
-        self.diff_r      = jit(lambda params, t : mdiff_state(self.batched_r,params,t))
+        self.diff_eval   = jit(vmap(jacfwd(self.single_eval, argnums=1), in_axes=(None, 0)))
+        self.diff_r      = jit(vmap(jacfwd(self.r, argnums=1), in_axes=(None, 0)))
         self.diff_params = jit(lambda params, t : mdiff_params(self.batched_eval,params,t))
 
     def f(self,batch):

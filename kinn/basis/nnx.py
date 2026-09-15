@@ -171,8 +171,8 @@ class nn(object):
         else:
             self.batched_state = jit(vmap(self.state, in_axes=(None,0)))
         self.diff_state    = jit(lambda params,t:vmap(jacfwd(self.state,argnums=(1)),in_axes=(None,0))(params,t))
-        self.d_pars     = jit(lambda params,t:vmap(jacfwd(self.state,argnums=(2)),in_axes=(None,0))(params,t))
-        self.d_state_pars     = jit(lambda params,t:vmap(jacfwd(jacfwd(self.state,argnums=(1)),argnums=(2)),in_axes=(None,0))(params,t))
+        self.d_pars     = jit(lambda params,t:vmap(jacfwd(self.state,argnums=0),in_axes=(None,0))(params,t))
+        self.d_state_pars     = jit(lambda params,t:vmap(jacfwd(jacfwd(self.state,argnums=1),argnums=0),in_axes=(None,0))(params,t))
         self.diff_state2   = jit(lambda params,t:vmap(jacfwd(jacfwd(self.state,argnums=(1)),argnums=(1)),in_axes=(None,0))(params,t))
     
     def init(self, nn_scale, act_fun):
@@ -182,7 +182,7 @@ class nn(object):
         self._jit_compile()
         
     def _init_params(self):
-        self.__randkey__ = random.PRNGKey(0)
+        self.__randkey__ = random.PRNGKey(getattr(self, 'seed', 0))
         self.set_params([init_network_params(layer_sizes, self.__randkey__, self.nn_scale) for\
                        layer_sizes in self.layers_sizes])
     

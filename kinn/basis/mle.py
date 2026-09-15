@@ -13,7 +13,6 @@
 
 # #### Necessary Libraries
 
-from readline import append_history_file
 from . import jnp, random, jit, partial, itertools, clear_output, grad, jacfwd, hessian, pmap, Precision, partial
 from jax import vmap, jacrev
 from jax.tree_util import tree_map
@@ -24,14 +23,11 @@ from jax.flatten_util import ravel_pytree
 import optax
 from . import nn
 
-from sklearn.covariance import MinCovDet
-from sklearn.metrics import mean_absolute_error, mean_squared_error, explained_variance_score
-from matplotlib import pyplot as plt
 from jax import value_and_grad
 
 
 import warnings
-warnings.filterwarnings('ignore')
+
 
 # Useful activation functions
 
@@ -120,7 +116,7 @@ class nn_npt(object):
         self.dimon   = sum(s>=prec)
         #self.dimon   = self.Uno.shape[1]
         self.Pnno    = jnp.hstack((U[:,:len(s)][:,s<prec],U[:,len(s):]))
-        self.Pnro    = U[:,s>=prec]
+        self.Pnro    = U[:,:len(s)][:,s>=prec]
         U,s,Vt       = jnp.linalg.svd(self.Url.T.dot(self.Url))
         self.dimr    = sum(s<prec)+(U.shape[1]-len(s))
         self.Pnrl    = jnp.hstack((U[:,:len(s)][:,s<prec],U[:,len(s):]))
@@ -167,6 +163,7 @@ class nn_npt(object):
         
     def set_nullspace(self,zn):
         self.zn = zn
+        self.out_n = jnp.asarray(zn)
 
     def set_gamma(self,zon,zln,Ugn):
         self.zon = zon
@@ -260,7 +257,10 @@ class nn_npt(object):
                 xt = 0.
             #x = (dx_r+dx_n)*jnp.tanh((t-t0)*self.gain*jnp.exp(xt))+x0
             #x = dx_r*jnp.tanh((t-t0)*self.gain*jnp.exp(xt))+x0
-            x = dx_r*jnp.tanh((t-t0)*self.gain*jnp.exp(xt))+x0
+            # Interpolate from the initial state to the constrained state.
+            # Subtracting only the conserved component can put surface
+            # fractions outside the simplex and exclude valid trajectories.
+            x = (dx-x0)*jnp.tanh((t-t0)*self.gain*jnp.exp(xt))+x0
         elif self.mode == 'inverse':
             x = dx
         else:
@@ -268,6 +268,20 @@ class nn_npt(object):
         return x
 
 #@jit
+def mean_absolute_error(y, prediction):
+    return jnp.mean(jnp.abs(y - prediction))
+
+
+def mean_squared_error(y, prediction):
+    return jnp.mean((y - prediction) ** 2)
+
+
+def explained_variance_score(y, prediction):
+    variance = jnp.var(y, axis=0)
+    residual = jnp.var(y - prediction, axis=0)
+    return jnp.mean(jnp.where(variance > 0, 1. - residual / jnp.where(variance > 0, variance, 1.), jnp.where(residual == 0, 1., 0.)))
+
+
 def r2_score(y,ypred):
     y_, ypred_   = [(_-_.mean(axis=0).reshape(1,-1))/jnp.where(_.std(axis=0).reshape(1,-1)==0,1.,\
                                                               _.std(axis=0).reshape(1,-1)) for _ in [y,ypred]]
@@ -287,49 +301,28 @@ def delta(y,yhat):
 
 @jit
 def oas(XT):
-    """
-    https://github.com/scikit-learn/scikit-learn/blob/2beed5584/sklearn/covariance/_shrunk_covariance.py#L434
-    """
+    """Oracle approximating shrinkage; variables by samples."""
+    return _cov_oas(jnp.atleast_2d(jnp.cov(XT)), XT.shape[1])
 
-    n_features, n_samples = XT.shape
 
-    emp_cov = jnp.cov(XT)
-    mu = jnp.trace(emp_cov) / n_features
-
-    # formula from Chen et al.'s **implementation**
-    alpha = jnp.mean(emp_cov ** 2)
-    num = alpha + mu ** 2
-    den = (n_samples + 1.) * (alpha - (mu ** 2) / n_features)
-
-    #shrinkage = 1. if den == 0 else min(num / den, 1.)
-    shrinkage = jnp.min(jnp.array([num / den, 1.]))*(den>0.)+1.*(den<=0.)
-    shrunk_cov = (1. - shrinkage) * emp_cov + jnp.eye(n_features) * shrinkage * mu
-    #shrunk_cov.flat[::n_features + 1] += shrinkage * mu
-
-    #return shrunk_cov, shrinkage
-    return emp_cov, shrinkage
-    
-@jit    
-def _cov_oas(emp_cov,n_samples):
-    
-    
+@jit
+def _cov_oas(emp_cov, n_samples):
+    """Return the shrunk covariance and its shrinkage coefficient."""
+    emp_cov = jnp.atleast_2d(emp_cov)
     n_features = emp_cov.shape[0]
-
+    if n_features == 0:
+        return emp_cov, jnp.array(1., dtype=emp_cov.dtype)
+    emp_cov = (emp_cov + emp_cov.T) / 2.
     mu = jnp.trace(emp_cov) / n_features
-
-    # formula from Chen et al.'s **implementation**
     alpha = jnp.mean(emp_cov ** 2)
-    num = alpha + mu ** 2
-    den = (n_samples + 1.) * (alpha - (mu ** 2) / n_features)
+    numerator = alpha + mu ** 2
+    denominator = (n_samples + 1.) * (alpha - mu ** 2 / n_features)
+    shrinkage = jnp.where(denominator > 0.,
+                         jnp.minimum(numerator / jnp.where(denominator > 0., denominator, 1.), 1.), 1.)
+    covariance = (1. - shrinkage) * emp_cov + jnp.eye(n_features) * shrinkage * mu
+    return covariance, shrinkage
 
-    #shrinkage = 1. if den == 0 else min(num / den, 1.)
-    shrinkage = jnp.min(jnp.array([num / den, 1.]))*(den>0.)+1.*(den<=0.)
-    shrunk_cov = (1. - shrinkage) * emp_cov + jnp.eye(n_features) * shrinkage * mu
-    #shrunk_cov.flat[::n_features + 1] += shrinkage * mu
 
-    #return shrunk_cov, shrinkage
-    return emp_cov, shrinkage
-    
 cov_oas = vmap(_cov_oas,in_axes=(0,None))
 
 class opt(object):
@@ -611,7 +604,7 @@ class opt(object):
         
     @partial(jit, static_argnums=(0))
     def _cinv(self,cov):
-        return jnp.linalg.pinv(cov,rcond=None)
+        return jnp.linalg.pinv(cov)
 
     @partial(jit,static_argnums=(0))   
     def _kl_div(self,c1,c2):
@@ -1084,8 +1077,6 @@ class opt(object):
             metrics[i]['data']['t'] = t
             metrics[i]['raw_data']['t'] = t
         return metrics
-
-
 
 
 
