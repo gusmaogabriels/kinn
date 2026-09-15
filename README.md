@@ -49,6 +49,29 @@ Both problem modes use the same `kinn` package and command. The default uses MLE
 
 For example, `kinn example --method fixed --mode inverse --output weighted.json` generates an input for the original fixed-weight objective. With `fixed`, `training.alpha` is your chosen weight; with `mle`, the residual covariances determine the weighting automatically.
 
+## Reproduce the paper experiments
+
+The CLI includes the original four mechanisms, both initial conditions, and 21 saved training archives. Re-evaluate an experiment locally, or export every archive with its trajectories, derivatives, parameters, calibration scales and Pareto history:
+
+```sh
+python -m pip install ".[reproduce]"
+kinn reproduce list
+kinn reproduce run trainer_invvwn_3_alpha13 --output paper-example --plots
+kinn reproduce run all --output paper-results --plots
+kinn reproduce verify --output paper-verification.json
+```
+
+The verification compares all 184 numerical entries in Tables 3–5 of the original paper. **183 match the printed rounding.** The noisy homogeneous log-rate MAE differs: the saved parameters give `0.022917`, while Table 5 prints `0.000229`. `verify` reports the difference and exits with status 1.
+
+Fresh training is also available with the saved architectures and stage schedules:
+
+```sh
+kinn reproduce plan trainer_fwd_0_alpha13 --output training-plan.json
+kinn reproduce train trainer_fwd_0_alpha13 --output fresh-forward --plots
+```
+
+Archive evaluation and training afresh are recorded separately. Full reproduction of both papers is still incomplete: MLE reference archives are missing, and the notebook's calibration, covariance-history and Hessian uncertainty workflow needs further CLI validation. The [reproduction guide](./docs/reproduction.md) documents coverage, checkpoint selection, numerical differences and the files each command writes.
+
 ## Define a kinetic problem
 
 Inputs describe the mechanism, datasets and surrogate architecture. A complete forward input for A ⇌ B is:

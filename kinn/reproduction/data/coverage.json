@@ -1,0 +1,16 @@
+{
+  "full_paper_reproduction": false,
+  "fixed_paper": {
+    "paper": "2011.14473v2",
+    "archives": 21,
+    "available": ["Original four mechanisms and both initial conditions", "JAX re-evaluation of saved trajectories and derivatives", "Q, SQ and SQ+n synthetic measurements", "Stage parameters, learned signal scales and Pareto histories", "Numerical comparison with every entry in Tables 3, 4 and 5", "Fresh training with archived architectures and recorded stage schedules for alpha13 and alpha17sens"],
+    "limits": ["Fresh-training equivalence to the published results is unverified", "The surviving script differs from archive architectures and some schedules; plan reports the archive settings", "Table 5 noisy homogeneous log-rate MAE differs from the saved parameters", "Plot exports redraw numerical results; they do not duplicate the original typesetting or conceptual Figures 1 and 2", "The earlier alpha13sens iteration count is not documented, so only archive evaluation is supported"]
+  },
+  "mle_paper": {
+    "paper": "2304.05991v2",
+    "source": "paper/rkinn.ipynb",
+    "status": "not_yet_reproduced",
+    "missing_archives": ["opt_invvwn_4_alpha107sens_uq_full.npz", "trainer_invvwn_3_mle.npz"],
+    "remaining": ["Port and validate notebook signal calibration and centered MLE training settings", "Export covariance relaxation and likelihood histories", "Reproduce Hessian-based kinetic-parameter uncertainty and SVD plots", "Compare reference outputs for Figures 1, 2 and 3 and architecture variants"]
+  }
+}

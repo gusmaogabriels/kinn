@@ -21,6 +21,7 @@ Repository = "https://github.com/gusmaogabriels/kinn"
 [project.optional-dependencies]
 dev = ["pytest>=8", "build", "twine", "jsonschema>=4"]
 notebooks = ["matplotlib>=3.8", "ipython", "jupyter", "scikit-learn"]
+reproduce = ["matplotlib>=3.8"]
 
 [tool.setuptools.dynamic]
 version = {attr = "kinn.__version__"}
@@ -30,6 +31,7 @@ include = ["kinn*"]
 
 [tool.setuptools.package-data]
 kinn = ["schema.json"]
+"kinn.reproduction" = ["data/*.json", "data/*.npz"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

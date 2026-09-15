@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "paper": "2011.14473v2",
+  "source_file": "paper/trainer_source.py",
+  "source_sha256": "629a557fa1720d7368fc3f422aeab43f18192586e5ab336f74087bae3606afa7",
+  "records": [
+    {
+      "id": "trainer_fwd_0_alpha13",
+      "model": "g",
+      "model_index": 0,
+      "scenario": "fwd",
+      "schedule": "alpha13",
+      "epochs": 3000,
+      "saved_states": 3,
+      "source": "paper/database/trainer_fwd_0_alpha13.npz",
+      "sha256": "87bf2a222ab5deb7dc480fa65b33dad85a23355725c964d7298058adf26a83ae"
+    },
+    {
+      "id": "trainer_fwd_1_alpha13",
+      "model": "da",
+      "model_index": 1,
+      "scenario": "fwd",
+      "schedule": "alpha13",
+      "epochs": 6000,
+      "saved_states": 6,
+      "source": "paper/database/trainer_fwd_1_alpha13.npz",
+      "sha256": "b2e1260fca2bff1fc35d36258529be755734b9041d78b203e458999dd1673348"
+    },
+    {
+      "id": "trainer_fwd_2_alpha13",
+      "model": "dc",
+      "model_index": 2,
+      "scenario": "fwd",
+      "schedule": "alpha13",
+      "epochs": 9000,
+      "saved_states": 9,
+      "source": "paper/database/trainer_fwd_2_alpha13.npz",
+      "sha256": "b03154c5bc652f82f2fc8e77a94aa6449b529c7a45152093afd93999c030e866"
+    },
+    {
+      "id": "trainer_fwd_3_alpha13",
+      "model": "dcs",
+      "model_index": 3,
+      "scenario": "fwd",
+      "schedule": "alpha13",
+      "epochs": 3000,
+      "saved_states": 3,
+      "source": "paper/database/trainer_fwd_3_alpha13.npz",
+      "sha256": "bb9fe5cd02d9e0cf30f3b7312afdd3d13403f8ded65f06248dc6525af6dbb0c8"
+    },
+    {
+      "id": "trainer_inv_0_alpha13",
+      "model": "g",
+      "model_index": 0,
+      "scenario": "inv",
+      "schedule": "alpha13",
+      "epochs": 7000,
+      "saved_states": 7,
+      "source": "paper/database/trainer_inv_0_alpha13.npz",
+      "sha256": "50877094353252fd639e09cab831328bd14424511584b51c3a86ed51e84cfd04"
+    },
+    {
+      "id": "trainer_inv_1_alpha13",
+      "model": "da",
+      "model_index": 1,
+      "scenario": "inv",
+      "schedule": "alpha13",
+      "epochs": 12000,
+      "saved_states": 12,
+      "source": "paper/database/trainer_inv_1_alpha13.npz",
+      "sha256": "40592c5207550584745b7fc6ea1c5a06edf2bf2627fc2cc89b095bf5807ef522"
+    },
+    {
+      "id": "trainer_inv_2_alpha13",
+      "model": "dc",
+      "model_index": 2,
+      "scenario": "inv",
+      "schedule": "alpha13",
+      "epochs": 17000,
+      "saved_states": 17,
+      "source": "paper/database/trainer_inv_2_alpha13.npz",
+      "sha256": "7adb1d77fb4fd22a574b906c38c83db1b0a92b77ab13a6d04573b7fff4540427"
+    },
+    {
+      "id": "trainer_inv_3_alpha13",
+      "model": "dcs",
+      "model_index": 3,
+      "scenario": "inv",
+      "schedule": "alpha13",
+      "epochs": 7000,
+      "saved_states": 7,
+      "source": "paper/database/trainer_inv_3_alpha13.npz",
+      "sha256": "800389d2517858a3ac45f07301bb2c31b6a768ae71d42b9023a2746dfe44a365"
+    },
+    {
+      "id": "trainer_inv_3_alpha13sens",
+      "model": "dcs",
+      "model_index": 3,
+      "scenario": "inv",
+      "schedule": "alpha13sens",
+      "epochs": 6200,
+      "saved_states": 31,
+      "source": "paper/database/trainer_inv_3_alpha13sens.npz",
+      "sha256": "f4af736d44136040e4c8862da645d01aecbc475ba25d2ab31fe7a17ed399ec1b"
+    },
+    {
+      "id": "trainer_invsc_0_alpha13",
+      "model": "g",
+      "model_index": 0,
+      "scenario": "invsc",
+      "schedule": "alpha13",
+      "epochs": 7000,
+      "saved_states": 7,
+      "source": "paper/database/trainer_invsc_0_alpha13.npz",
+      "sha256": "50877094353252fd639e09cab831328bd14424511584b51c3a86ed51e84cfd04"
+    },
+    {
+      "id": "trainer_invsc_1_alpha13",
+      "model": "da",
+      "model_index": 1,
+      "scenario": "invsc",
+      "schedule": "alpha13",
+      "epochs": 12000,
+      "saved_states": 12,
+      "source": "paper/database/trainer_invsc_1_alpha13.npz",
+      "sha256": "75bceab1029fe7cff57628f6bb589dff40f3bc97d623a71d64db0647cd1f50f4"
+    },
+    {
+      "id": "trainer_invsc_2_alpha13",
+      "model": "dc",
+      "model_index": 2,
+      "scenario": "invsc",
+      "schedule": "alpha13",
+      "epochs": 17000,
+      "saved_states": 17,
+      "source": "paper/database/trainer_invsc_2_alpha13.npz",
+      "sha256": "01c3e6a21b328333134a23af2900c59ea6f1f68dae3cd41d90976fdcc7a3242d"
+    },
+    {
+      "id": "trainer_invsc_3_alpha13",
+      "model": "dcs",
+      "model_index": 3,
+      "scenario": "invsc",
+      "schedule": "alpha13",
+      "epochs": 7000,
+      "saved_states": 7,
+      "source": "paper/database/trainer_invsc_3_alpha13.npz",
+      "sha256": "34da8345309400cc2d6a770243cc1fb1881472a1c13f6afa3c92173a6168b35e"
+    },
+    {
+      "id": "trainer_invsc_3_alpha13sens",
+      "model": "dcs",
+      "model_index": 3,
+      "scenario": "invsc",
+      "schedule": "alpha13sens",
+      "epochs": 6200,
+      "saved_states": 31,
+      "source": "paper/database/trainer_invsc_3_alpha13sens.npz",
+      "sha256": "9f9d8cea603ae49a30d9829993ecac800b36f5c7a1e0a191604c14237072a81e"
+    },
+    {
+      "id": "trainer_invsc_3_alpha17sens",
+      "model": "dcs",
+      "model_index": 3,
+      "scenario": "invsc",
+      "schedule": "alpha17sens",
+      "epochs": 18300,
+      "saved_states": 61,
+      "source": "paper/database/trainer_invsc_3_alpha17sens.npz",
+      "sha256": "8b2deee9e271d010e599d78836b21b6392a214b0ff70b743b01e1f0fdf6eeefc"
+    },
+    {
+      "id": "trainer_invvwn_0_alpha13",
+      "model": "g",
+      "model_index": 0,
+      "scenario": "invvwn",
+      "schedule": "alpha13",
+      "epochs": 7000,
+      "saved_states": 7,
+      "source": "paper/database/trainer_invvwn_0_alpha13.npz",
+      "sha256": "2469f756031b38d5473ddf609212ce29d5ffb8e962938f417802062c35ad2e4b"
+    },
+    {
+      "id": "trainer_invvwn_1_alpha13",
+      "model": "da",
+      "model_index": 1,
+      "scenario": "invvwn",
+      "schedule": "alpha13",
+      "epochs": 12000,
+      "saved_states": 12,
+      "source": "paper/database/trainer_invvwn_1_alpha13.npz",
+      "sha256": "ee428923e49adaa7d2eda09642214a16afb55cd49d4973d9e521a09404ce38f1"
+    },
+    {
+      "id": "trainer_invvwn_2_alpha13",
+      "model": "dc",
+      "model_index": 2,
+      "scenario": "invvwn",
+      "schedule": "alpha13",
+      "epochs": 17000,
+      "saved_states": 17,
+      "source": "paper/database/trainer_invvwn_2_alpha13.npz",
+      "sha256": "9a4f37ac193161d1706f13dc93b3bfba95a28c60f9902b7a8f03774169209a7f"
+    },
+    {
+      "id": "trainer_invvwn_3_alpha13",
+      "model": "dcs",
+      "model_index": 3,
+      "scenario": "invvwn",
+      "schedule": "alpha13",
+      "epochs": 7000,
+      "saved_states": 7,
+      "source": "paper/database/trainer_invvwn_3_alpha13.npz",
+      "sha256": "be2ee8d7b1a37083f6fd5588d564612747b6533fbb171801f2b0d26c2adfc09c"
+    },
+    {
+      "id": "trainer_invvwn_3_alpha13sens",
+      "model": "dcs",
+      "model_index": 3,
+      "scenario": "invvwn",
+      "schedule": "alpha13sens",
+      "epochs": 6200,
+      "saved_states": 31,
+      "source": "paper/database/trainer_invvwn_3_alpha13sens.npz",
+      "sha256": "0f0198b52e441b83366c74b4d13707c18aeddceeff7e435f3af1b607b0e13ab0"
+    },
+    {
+      "id": "trainer_invvwn_3_alpha17sens",
+      "model": "dcs",
+      "model_index": 3,
+      "scenario": "invvwn",
+      "schedule": "alpha17sens",
+      "epochs": 18300,
+      "saved_states": 61,
+      "source": "paper/database/trainer_invvwn_3_alpha17sens.npz",
+      "sha256": "8708dcd9e4053cda8fd853d6218766b5cca4b4a5da31b2df172456c7bf6ca42a"
+    }
+  ],
+  "source_scope": "Archived training parameters and stage histories from the original repository; recalculating outputs is distinct from training afresh.",
+  "missing_mle_archives": [
+    "opt_invvwn_4_alpha107sens_uq_full.npz",
+    "trainer_invvwn_3_mle.npz"
+  ]
+}

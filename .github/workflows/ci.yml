@@ -74,17 +74,24 @@ jobs:
       - name: Install the wheel outside the source tree
         run: |
           python -m venv /tmp/kinn-wheel
-          /tmp/kinn-wheel/bin/python -m pip install --force-reinstall dist/*.whl
+          /tmp/kinn-wheel/bin/python -m pip install --force-reinstall dist/*.whl "matplotlib>=3.8"
           cd /tmp
           /tmp/kinn-wheel/bin/python -m pip check
           /tmp/kinn-wheel/bin/kinn example --method fixed --mode forward --output kinn-input.json
           /tmp/kinn-wheel/bin/kinn validate kinn-input.json
           /tmp/kinn-wheel/bin/kinn run kinn-input.json --output kinn-output.json
           /tmp/kinn-wheel/bin/python -c 'import json; r=json.load(open("kinn-output.json")); assert r["status"] == "converged"'
+          /tmp/kinn-wheel/bin/kinn reproduce run all --output kinn-paper-references --plots
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: distributions
           path: dist/*
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: paper-reference-results
+          path: /tmp/kinn-paper-references
           if-no-files-found: error
 
   timings:

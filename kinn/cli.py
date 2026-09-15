@@ -59,6 +59,8 @@ def main(argv=None):
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('schema', help='Print the JSON problem schema.')
     sub.add_parser('capabilities', help='Print supported modes, activations and input conventions.')
+    from .reproduction.cli import add_parser
+    add_parser(sub)
     ex = sub.add_parser('example', help='Print a complete analytic example problem.')
     ex.add_argument('--kind', choices=('homogeneous', 'adsorption'), default='homogeneous')
     ex.add_argument('--mode', choices=('forward', 'inverse'), default='inverse')
@@ -71,7 +73,10 @@ def main(argv=None):
         child.add_argument('--output')
     args = parser.parse_args(argv)
     try:
-        if args.command == 'schema':
+        if args.command == 'reproduce':
+            from .reproduction.cli import run
+            return run(args)
+        elif args.command == 'schema':
             _emit(json.loads(files('kinn').joinpath('schema.json').read_text()))
         elif args.command == 'capabilities':
             from .problem import ACTIVATIONS
@@ -82,6 +87,7 @@ def main(argv=None):
                    'observations': 'all nonsurface species, or all species; multiple datasets share kinetic parameters',
                    'surrogate': {'families': {'fixed': 'original nn_combo MLP and surface transform', 'mle': 'original nn_npt SVD-constrained MLP'}, 'hidden_layers': 'configurable', 'activations': ACTIVATIONS},
                    'variance': 'first-order residual propagation with automatic OAS covariance weighting; not posterior credible intervals',
+                   'reproduction': {'commands':'kinn reproduce list|run|verify|plan|train', 'scope':'21 original fixed-weight paper archives; MLE paper reproduction incomplete'},
                    'execution': 'local', 'network': 'none'})
         elif args.command == 'example':
             _emit(example(args.kind, args.mode, args.method), args.output)
