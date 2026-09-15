@@ -1,6 +1,6 @@
 # Reproducing the KINN papers
 
-All commands run locally through the single `kinn` package. Install the branch as shown in the README, then `python -m pip install ".[reproduce]"` for optional Matplotlib plots. Numerical commands need only the base installation.
+All commands run locally through the single `kinn` package. Install the repository as shown in the README, then `python -m pip install ".[reproduce]"` for optional Matplotlib plots. Numerical commands need only the base installation.
 
 ## Coverage and acceptance criteria
 

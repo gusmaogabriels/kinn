@@ -48,7 +48,7 @@ def require_plots():
     try:
         import matplotlib
     except ImportError as error:
-        raise ValueError('Plotting needs Matplotlib: python -m pip install "kinn[reproduce]"') from error
+        raise ValueError('Plotting needs Matplotlib: python -m pip install "matplotlib>=3.8"') from error
     matplotlib.use('Agg')
 
 

@@ -4,10 +4,10 @@
 
 ## Run locally
 
-Python 3.11 or newer is required. Install the CLI branch:
+Python 3.11 or newer is required. Install from the repository:
 
 ```sh
-git clone --branch kinn-cli https://github.com/gusmaogabriels/kinn.git
+git clone https://github.com/gusmaogabriels/kinn.git
 cd kinn
 python -m venv .venv
 source .venv/bin/activate
