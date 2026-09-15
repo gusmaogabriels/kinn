@@ -157,15 +157,17 @@ The first-epoch timing includes compilation on first use. Warm epoch timings inc
 
 CI covers Linux, macOS and Windows, supported dependency combinations, numerical examples, covariance propagation and installation of the built wheel.
 
-## Fixed-alpha Pareto formulation
+## Adaptive covariance weighting during training
 
-The [original KINNs paper](https://doi.org/10.48550/arXiv.2011.14473) studies the tradeoff between fitting measurements and satisfying the kinetic model. In inverse `fixed` problems, each fit uses physics MSE + `alpha` × data MSE. Sweeping alpha across fits traces the regularization path.
+During MLE training, KINNs estimates covariance from sampled residuals and propagates state and parameter uncertainty through the kinetic model. The resulting inverse covariance matrices weight the data and physics residuals. They are refreshed between training cycles and held fixed within each block of parameter updates, as described in the [MLE paper](https://arxiv.org/abs/2304.05991).
+
+The comparison below shows this adaptive trajectory alongside the regularization sweep from the [original fixed-alpha formulation](https://doi.org/10.48550/arXiv.2011.14473), evaluated in the same likelihood coordinates.
 
 <p align="center">
-  <img src="./misc/gifs/pareto-sweep.gif" alt="Fixed-alpha Pareto sweep and overlaid fixed-alpha and MLE convergence paths in shared likelihood coordinates, with a close-up of the MLE stable point" width="800"/>
+  <img src="./misc/gifs/pareto-sweep.gif" alt="Overlaid fixed-alpha and MLE convergence paths in shared likelihood coordinates, with a close-up of the MLE stable point" width="800"/>
 </p>
 
-*Animated redraw of [Figure 2a,c of the MLE paper](https://arxiv.org/html/2304.05991v2#S2.F2).* Left: fixed-alpha Pareto sweep. Right: fixed-alpha and MLE paths in the paper's shared likelihood coordinates, with the MLE stable point enlarged. Frames reveal published points; playback does not represent training time.
+*Animated redraw of [Figure 2c of the MLE paper](https://arxiv.org/html/2304.05991v2#S2.F2).* Fixed-alpha and MLE paths share the paper's likelihood coordinates, with the MLE stable point enlarged in the inset. Frames reveal published points; playback does not represent training time.
 
 ## MLE training example
 
