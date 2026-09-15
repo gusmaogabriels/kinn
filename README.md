@@ -166,10 +166,10 @@ The [mathematical formulation](#mathematical-formulation) below explains the res
 The comparison below shows this adaptive trajectory alongside the regularization sweep from the [original fixed-alpha formulation](https://doi.org/10.48550/arXiv.2011.14473), evaluated in the same likelihood coordinates.
 
 <p align="center">
-  <img src="./misc/gifs/pareto-sweep.gif" alt="Overlaid fixed-alpha and MLE convergence paths, with the paper's final MLE estimate marked by a black circle and enlarged in the inset" width="800"/>
+  <img src="./misc/gifs/pareto-sweep.gif" alt="Fixed-alpha and MLE convergence paths, with arrows for increasing and decreasing alpha and the paper's final MLE estimate enlarged in the inset" width="800"/>
 </p>
 
-*Animated redraw of [Figure 2c of the MLE paper](https://arxiv.org/html/2304.05991v2#S2.F2).* Fixed-alpha and MLE paths share the paper's likelihood coordinates. The black circle marks the paper's final MLE estimate, enlarged in the inset. Frames reveal every published point, with faster playback near convergence; playback does not represent training time.
+*Animated redraw of [Figure 2c of the MLE paper](https://arxiv.org/html/2304.05991v2#S2.F2).* Fixed-alpha and MLE paths share the paper's likelihood coordinates. Arrows mark increasing alpha on the tightening branch and decreasing alpha on the relaxation branch. The black circle marks the paper's final MLE estimate, enlarged in the inset. Frames reveal every published point, with faster playback near convergence; playback does not represent training time.
 
 ## MLE training example
 
@@ -214,100 +214,141 @@ The corresponding Python sources are [kinn_datagen_reg.py](./paper/kinn_datagen_
 
 ## Mathematical formulation
 
-The equations connect the [KINNs playground](https://www.gabrielgusmao.com/blog/kinns-playground/) to the [original fixed-weight formulation](https://doi.org/10.48550/arXiv.2011.14473) and the [MLE paper](https://arxiv.org/html/2304.05991v2). Here the notation follows the Python package: states are $`x`$, neural parameters are $`\theta`$, and log-rate constants are $`p=\ln k`$.
+This section follows the [MLE paper](https://arxiv.org/html/2304.05991v2), which also states the original fixed-alpha KINNs objective. Equation references below identify the source of each part of the formulation. The paper denotes physical concentrations by $`\mathbf{c}`$, the surrogate trajectory by $`\mathbf{x}(t,\boldsymbol{\omega}_{\mathrm{s}})`$, and kinetic parameters by $`\mathbf{p}`$.
 
-### Kinetics and neural residuals
+### Kinetics, residuals and fixed-alpha weighting
 
-For the CLI's mass-action models, `stoichiometry` supplies $`M`$ with one column per directed reaction:
-
-```math
-\dot{x}=f(x,p)=M r(x,p),\qquad
-r_j(x,p)=e^{p_j}\prod_{s:M_{sj}<0}x_s^{-M_{sj}}.
-```
-
-The surrogate $`\hat{x}_\theta(t)`$ represents the trajectory; JAX differentiates it with respect to time. With observations $`y_i`$ at times $`t_i`$ and physics collocation times $`\tau_j`$, the residuals are
+The kinetic model in [Eq. 2.1.1](https://arxiv.org/html/2304.05991v2#S2.SS1.E1) is
 
 ```math
-e_{d,i}=H\hat{x}_\theta(t_i)-y_i,\qquad
-e_{m,j}=\frac{d\hat{x}_\theta}{dt}(\tau_j)
-        -f(\hat{x}_\theta(\tau_j),p).
+\dot{\mathbf{c}}=f(\mathbf{c},\mathbf{p})
+=\mathbf{M}\left(\mathbf{k}(\mathbf{p})\circ\psi(\mathbf{c})\right).
 ```
 
-$`H`$ selects `observed_species`. In **forward** mode, training adjusts the neural trajectory with supplied rates and initial conditions; there is no data residual. In **inverse** mode, it also fits $`p`$, with $`k=\exp(p)`$ keeping rates positive. Each dataset has its own trajectory and shares the kinetic parameters.
+$`\mathbf{M}`$ has species rows and reaction columns, $`\psi`$ is the power-law kinetics map, and $`\circ`$ denotes elementwise multiplication. Temperature dependence is suppressed here. The surrogate approximates $`\mathbf{c}(t)`$, and its derivative is obtained by automatic differentiation.
 
-### Fixed-alpha weighting
+[Eqs. 2.1.2–2.1.4](https://arxiv.org/html/2304.05991v2#S2.SS1.E2) define the interpolation and model residuals and the fixed-alpha objective over $`d`$ samples:
 
 ```math
-J_{\mathrm{fixed}}=j_m+\alpha j_d,\qquad
-j_m=\operatorname{MSE}(e_m),\quad j_d=\operatorname{MSE}(e_d).
+\begin{aligned}
+\boldsymbol{\varepsilon}_{\mathbf{x}_i}
+  &=\mathbf{x}(t_i,\boldsymbol{\omega}_{\mathrm{s}})-\tilde{\mathbf{x}}_i,\\
+\boldsymbol{\varepsilon}_{\dot{\mathbf{x}}_i}
+  &=\dot{\mathbf{x}}(t_i,\boldsymbol{\omega}_{\mathrm{s}})-f(\mathbf{x}_i,\mathbf{p}),\\
+j_{\mathrm{t}}
+  &=\frac1d\sum_{i=1}^{d}
+    \boldsymbol{\varepsilon}_{\dot{\mathbf{x}}_i}^{T}\boldsymbol{\varepsilon}_{\dot{\mathbf{x}}_i}
+   +\frac{\alpha}{d}\sum_{i=1}^{d}
+    \boldsymbol{\varepsilon}_{\mathbf{x}_i}^{T}\boldsymbol{\varepsilon}_{\mathbf{x}_i}.
+\end{aligned}
 ```
 
-The MSEs average over samples and residual components. `training.alpha` stays constant within an inverse `fixed` run; repeating fits at different values traces the regularization path. Forward `fixed` minimizes only $`j_m`$.
+Inverse fitting optimizes the neural weights and kinetic parameters at fixed $`\alpha`$. Sweeping alpha produces the regularization paths compared in Figure 2.
 
-### Conservation and SVD coordinates
+### Range and left-nullspace decomposition
 
-An SVD separates changing and conserved coordinates:
+For real-valued matrices, the SVD in [Eqs. 2.3.1–2.3.2](https://arxiv.org/html/2304.05991v2#S2.SS3.E1) can be written
 
 ```math
-M=U_r D_r V_r^T,\qquad U_n^T M=0,\qquad
-\frac{d}{dt}(U_n^T x)=0.
+\mathbf{M}=\mathbf{U}\mathbf{S}\mathbf{V}^{T},\qquad
+\mathbf{U}=\begin{bmatrix}\mathbf{U}^{\mathrm{R}}&\mathbf{U}^{\mathrm{N}}\end{bmatrix}.
 ```
 
-The MLE surrogate incorporates this decomposition and the surface-site constraint. Physics residuals and their covariance are projected into the same reactive subspace:
+The columns of $`\mathbf{U}^{\mathrm{R}}`$ span the range of $`\mathbf{M}`$. The columns of $`\mathbf{U}^{\mathrm{N}}`$ span its **left nullspace**, $`\ker(\mathbf{M}^{T})`$. For the closed kinetic system, [Eqs. 2.3.3–2.3.7](https://arxiv.org/html/2304.05991v2#S2.SS3.E3) give
 
 ```math
-\rho_{m,j}=U_r^T e_{m,j},\qquad C_{m,j}=U_r^T\Sigma_{f,j}U_r.
+\begin{aligned}
+\mathbf{z}^{\mathrm{R}}(t)&=(\mathbf{U}^{\mathrm{R}})^T\mathbf{c}(t),&
+\mathbf{z}^{\mathrm{N}}&=(\mathbf{U}^{\mathrm{N}})^T\mathbf{c}(t),\\
+\mathbf{c}(t)&=\mathbf{U}^{\mathrm{R}}\mathbf{z}^{\mathrm{R}}(t)
+                  +\mathbf{U}^{\mathrm{N}}\mathbf{z}^{\mathrm{N}},&
+\dot{\mathbf{z}}^{\mathrm{N}}&=\mathbf{0}.
+\end{aligned}
 ```
 
-For data, the implementation first restricts covariance to observed species, then projects it into the corresponding independent coordinates. This avoids treating unobserved species as measured. Removing conservation-induced redundant directions improves covariance conditioning; SVD alone does not make an arbitrary covariance diagonal.
+Time dependence is represented in the range coordinates; the nullspace coordinates encode conserved quantities. For heterogeneous systems, the paper partitions these bases into bulk and surface rows and uses the normalization operator $`\mathrm{C}_{N}`$ to enforce the surface-site balance. The constrained surrogate construction is given in [Eqs. 4.7.1–4.7.2](https://arxiv.org/html/2304.05991v2#S4.SS7.E1).
 
-### MLE weighting from sampled errors
+### Covariance estimated from residuals and propagated through the model
 
-For a zero-mean Gaussian residual $`\rho`$ with covariance $`C`$, its negative log-likelihood, up to a constant, is
+[Eq. 4.1.5](https://arxiv.org/html/2304.05991v2#S4.SS1.E5) estimates the state-error covariance from centered residuals:
 
 ```math
-g(\rho,C)=\frac12\left(\rho^T C^{-1}\rho+\log\det C\right).
+\boldsymbol{\Sigma}_{\mathbf{x}}
+=\left\langle
+\left(\boldsymbol{\varepsilon}_{\mathbf{x}}-\langle\boldsymbol{\varepsilon}_{\mathbf{x}}\rangle\right)
+\left(\boldsymbol{\varepsilon}_{\mathbf{x}}-\langle\boldsymbol{\varepsilon}_{\mathbf{x}}\rangle\right)^T
+\right\rangle.
 ```
 
-With $`N_d`$ observations and $`N_m`$ collocation points, averaging the data and physics blocks separately gives
+The paper obtains local parameter-error samples by the least-squares relation in [Eq. 4.1.4](https://arxiv.org/html/2304.05991v2#S4.SS1.E4), then estimates $`\boldsymbol{\Sigma}_{\mathbf{p}}`$ from those samples. These sampled errors differ from the unknown error relative to the true parameter vector.
+
+The first-order expansion in [Eq. 2.2.2](https://arxiv.org/html/2304.05991v2#S2.SS2.E2) includes both the surrogate representation and kinetic-model contributions:
 
 ```math
-\bar\ell=
-\frac1{N_d}\sum_{i=1}^{N_d}g(\rho_{d,i},C_d)
-+\frac1{N_m}\sum_{j=1}^{N_m}g(\rho_{m,j},C_{m,j}).
+\delta\boldsymbol{\varepsilon}_{\dot{\mathbf{x}}}
+\simeq
+\left(\partial_{\mathbf{x}}\dot{\mathbf{x}}-\partial_{\mathbf{x}}f\right)\delta\mathbf{x}
+-\partial_{\mathbf{p}}f\,\delta\mathbf{p}.
 ```
 
-The CLI optimizes the quadratic terms with covariance held fixed during each optimizer block, then refreshes the covariance from current residuals and sensitivities. The log-determinant terms are constant within that block and are omitted from its gradient objective. Separate experiments are averaged. Forward MLE uses only the physics block and estimates its covariance from sampled physics defects.
-
-For inverse solves, the current driver uses state-residual second moments,
+The paper neglects $`\partial_{\mathbf{x}}\dot{\mathbf{x}}`$ under its stated approximation for a sufficiently expressive neural basis. Assuming independent, zero-mean Gaussian state and parameter perturbations, [Eq. 4.1.2](https://arxiv.org/html/2304.05991v2#S4.SS1.E2) then gives
 
 ```math
-\Sigma_x=\frac1N\sum_{i=1}^N e_{x,i}e_{x,i}^T,
+\begin{aligned}
+\boldsymbol{\Sigma}_{\dot{\mathbf{x}}_i}
+&=\partial_{\mathbf{x}}f_i\,\boldsymbol{\Sigma}_{\mathbf{x}}\,
+  (\partial_{\mathbf{x}}f_i)^T
+ +\partial_{\mathbf{p}}f_i\,\boldsymbol{\Sigma}_{\mathbf{p}}\,
+  (\partial_{\mathbf{p}}f_i)^T\\
+&=\boldsymbol{\Sigma}^{\mathbf{x}}_{\dot{\mathbf{x}}_i}
+ +\boldsymbol{\Sigma}^{\mathbf{p}}_{\dot{\mathbf{x}}_i},
+\qquad f_i=f(\mathbf{x}_i,\mathbf{p}).
+\end{aligned}
 ```
 
-and centered sample covariance for locally inferred log-rate errors. State residuals include inferred latent components where needed. The paper also discusses centered covariance and residual-mean stabilization; the general CLI uses the estimators described here, with OAS shrinkage and an eigenvalue floor when constructing inverse covariance weights. The [implementation notes](./docs/cli.md#results-and-variance-propagation) describe these choices.
+### Projected MLE objective and covariance updates
 
-Thus MLE adapts a **matrix of residual weights across species and time**, through sampled errors and kinetic sensitivities. It does not update a scalar alpha, and covariance need not decrease monotonically during training.
-
-### Automatic variance propagation and rate uncertainty
-
-For inverse MLE, linearize the kinetic model around the current trajectory and log-rate parameters:
+Project residuals into the range using $`(\mathbf{U}^{\mathrm{R}})^T`$. With the residual signs defined above,
 
 ```math
-\delta f\simeq J_x\delta x+J_p\delta p,\qquad
-J_x=\frac{\partial f}{\partial x},\quad
-J_p=\frac{\partial f}{\partial p}.
+\boldsymbol{\varepsilon}_{\mathbf{z}_i}^{\mathrm{R}}
+ =(\mathbf{U}^{\mathrm{R}})^T\boldsymbol{\varepsilon}_{\mathbf{x}_i},\qquad
+\boldsymbol{\varepsilon}_{\dot{\mathbf{z}}_i}^{\mathrm{R}}
+ =(\mathbf{U}^{\mathrm{R}})^T\boldsymbol{\varepsilon}_{\dot{\mathbf{x}}_i}.
 ```
 
-Assuming independent state and log-rate errors gives the local propagation used by default:
+The precision matrices in [Eq. 4.7.3](https://arxiv.org/html/2304.05991v2#S4.SS7.E3) are the **inverses of the projected covariances**:
 
 ```math
-\Sigma_f(t)\simeq
-J_x(t)\Sigma_x J_x(t)^T+J_p(t)\Sigma_p J_p(t)^T,
-\qquad
-\Sigma_k\simeq\operatorname{diag}(k)\Sigma_p\operatorname{diag}(k).
+\begin{aligned}
+\boldsymbol{\Omega}_{\mathbf{z}}^{\mathrm{R}}
+ &=\left[(\mathbf{U}^{\mathrm{R}})^T\boldsymbol{\Sigma}_{\mathbf{x}}\mathbf{U}^{\mathrm{R}}\right]^{-1},\\
+\boldsymbol{\Omega}_{\dot{\mathbf{z}}_i}^{\mathrm{R}}
+ &=\left[(\mathbf{U}^{\mathrm{R}})^T
+   \left(\boldsymbol{\Sigma}^{\mathbf{x}}_{\dot{\mathbf{x}}_i}
+        +\boldsymbol{\Sigma}^{\mathbf{p}}_{\dot{\mathbf{x}}_i}\right)
+   \mathbf{U}^{\mathrm{R}}\right]^{-1}.
+\end{aligned}
 ```
 
-`uncertainty.representation_error: true` additionally accounts for the neural derivative's state linearization when forming residual weights. The reported state, log-rate, rate and RHS covariances describe local empirical errors. The paper's parameter confidence intervals additionally use likelihood-Hessian/Fisher-information analysis; general `kinn run` does not currently export those intervals. Rank-deficient kinetic sensitivities are reported explicitly, with `null` rate-error covariance. Forward rates remain fixed, and `fixed` runs do not estimate covariance.
+With $`d`$ denoting the number of samples, the reduced objective is
 
-The original rKINNs [notebook](./paper/rkinn.ipynb), [Python source](./paper/rkinn.py), and [MLE routines](./kinn/basis/mle.py) retain the research formulation. See the [variance and result guide](./docs/cli.md#results-and-variance-propagation) for the scope of general CLI outputs.
+```math
+\min_{\boldsymbol{\omega}_{\mathrm{s}},\mathbf{p}}\ \ell_{\mathrm{t}}
+=\frac1d\sum_{i=1}^{d}\left[
+ (\boldsymbol{\varepsilon}_{\dot{\mathbf{z}}_i}^{\mathrm{R}})^T
+ \boldsymbol{\Omega}_{\dot{\mathbf{z}}_i}^{\mathrm{R}}
+ \boldsymbol{\varepsilon}_{\dot{\mathbf{z}}_i}^{\mathrm{R}}
++(\boldsymbol{\varepsilon}_{\mathbf{z}_i}^{\mathrm{R}})^T
+ \boldsymbol{\Omega}_{\mathbf{z}}^{\mathrm{R}}
+ \boldsymbol{\varepsilon}_{\mathbf{z}_i}^{\mathrm{R}}
+\right].
+```
+
+The paper holds precision matrices fixed during parameter updates, then recomputes residual covariances, kinetic sensitivities and projected precision matrices between epochs ([Algorithm 1](https://arxiv.org/html/2304.05991v2#alg1)). Gaussian normalization terms are constant within that parameter-update problem. The covariance stabilization in [Eq. 4.2.1](https://arxiv.org/html/2304.05991v2#S4.SS2.E1) adds a diagonal term based on the absolute residual mean. This is the paper's mechanism for adapting residual weights as training proceeds.
+
+### Relation to the CLI
+
+`mode` selects forward or inverse fitting; `method` selects `fixed` or `mle`. The general CLI's observed-species handling, separate time grids, OAS shrinkage, eigenvalue floor and uncentered state-residual second moments are implementation choices documented in the [CLI guide](./docs/cli.md#results-and-variance-propagation). They are not the paper's equations above. The package uses $`p_{\mathrm{CLI}}=\ln k`$; the Arrhenius convention beside paper Eq. 2.1.1 uses $`k=\exp(-p(\theta))`$.
+
+The paper's parameter intervals additionally use likelihood-Hessian/Fisher-information analysis. General `kinn run` returns empirical error covariances and does not export those intervals. The original [notebook](./paper/rkinn.ipynb), [Python source](./paper/rkinn.py), and [MLE routines](./kinn/basis/mle.py) retain the research formulation.
