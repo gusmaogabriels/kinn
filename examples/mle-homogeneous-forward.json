@@ -1,16 +1,12 @@
 {
   "schema_version": 1,
-  "method": "kinn",
+  "method": "mle",
   "mode": "forward",
   "species": [
     "A",
-    "A*",
-    "*"
+    "B"
   ],
-  "surface_species": [
-    "A*",
-    "*"
-  ],
+  "surface_species": [],
   "stoichiometry": [
     [
       -1,
@@ -19,14 +15,11 @@
     [
       1,
       -1
-    ],
-    [
-      -1,
-      1
     ]
   ],
   "observed_species": [
-    "A"
+    "A",
+    "B"
   ],
   "rate_constants": [
     2.0,
@@ -58,9 +51,8 @@
         1.0
       ],
       "initial_state": [
-        0.8,
-        0.2,
-        0.8
+        1.0,
+        0.0
       ]
     }
   ],

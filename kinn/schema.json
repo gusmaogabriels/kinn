@@ -250,7 +250,7 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "default": 1,
-          "description": "Original KINNs data MSE weight; only valid for method kinn."
+          "description": "Fixed data MSE weight (alpha); only valid for method fixed."
         }
       }
     },
@@ -285,10 +285,11 @@
     },
     "method": {
       "enum": [
-        "kinn",
-        "rkinn"
+        "fixed",
+        "mle"
       ],
-      "default": "rkinn"
+      "default": "mle",
+      "description": "fixed: chosen data/physics weight (alpha); mle: adaptive covariance weighting with variance propagation and SVD."
     }
   },
   "required": [
@@ -386,7 +387,7 @@
         "not": {
           "properties": {
             "method": {
-              "const": "kinn"
+              "const": "fixed"
             }
           },
           "required": [
@@ -410,7 +411,7 @@
       "if": {
         "properties": {
           "method": {
-            "const": "kinn"
+            "const": "fixed"
           }
         },
         "required": [

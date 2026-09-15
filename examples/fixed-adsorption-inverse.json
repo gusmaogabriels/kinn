@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "method": "rkinn",
+  "method": "fixed",
   "mode": "inverse",
   "species": [
     "A",
@@ -141,7 +141,9 @@
     "steps_per_epoch": 100,
     "warmup_steps": 1000,
     "learning_rate": 0.001,
-    "seed": 0
+    "seed": 0,
+    "alpha": 100.0,
+    "data_tolerance": 0.0005
   },
   "units": {
     "time": "s",

@@ -277,7 +277,7 @@ def run(problem):
     status = 'converged' if success else 'max_epochs'
     if success and not (checks['nonnegative_at_sampled_points'] and checks['surface_site_balance_satisfied']):
         status = 'physical_constraint_violation'
-    return {'schema_version': 1, 'method': 'rkinn', 'status': status,
+    return {'schema_version': 1, 'method': 'mle', 'status': status,
             'mode': problem['mode'], 'species': problem['species'],
             'rate_constants': np.asarray(jnp.exp(trainer.params['pm'][0])).tolist(),
             'log_rate_constants': np.asarray(trainer.params['pm'][0]).tolist(),

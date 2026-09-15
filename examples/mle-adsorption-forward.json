@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "method": "rkinn",
+  "method": "mle",
   "mode": "forward",
   "species": [
     "A",

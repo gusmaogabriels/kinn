@@ -1,4 +1,4 @@
-"""Validated JSON inputs for local, closed-batch rKINNs problems."""
+"""Validated JSON inputs for local, closed-batch kinn problems."""
 import csv
 import json
 from pathlib import Path
@@ -84,16 +84,16 @@ def validate(obj, *, base=Path('.')):
     mode = obj.get('mode')
     if mode not in ('forward', 'inverse'):
         raise ProblemError('mode must be forward or inverse')
-    method = obj.get('method', 'rkinn')
-    if method not in ('kinn', 'rkinn'):
-        raise ProblemError('method must be kinn or rkinn')
+    method = obj.get('method', 'mle')
+    if method not in ('fixed', 'mle'):
+        raise ProblemError('method must be fixed or mle')
     species = _names(obj.get('species'), 'species')
     surface = _names(obj.get('surface_species', []), 'surface_species', empty=True)
     if not set(surface) <= set(species):
         raise ProblemError('surface_species must refer to species names')
     bulk = [name for name in species if name not in surface]
     if not bulk:
-        raise ProblemError('this rKINNs interface requires at least one nonsurface species')
+        raise ProblemError('this kinn interface requires at least one nonsurface species')
     order = [species.index(name) for name in bulk + surface]
     matrix = _array(obj.get('stoichiometry'), 'stoichiometry', 2)
     if matrix.shape[0] != len(species) or matrix.shape[1] == 0 or not np.all(matrix == np.round(matrix)):
@@ -138,7 +138,7 @@ def validate(obj, *, base=Path('.')):
         _positive(architecture['boundary_gain'], 'surrogate.boundary_gain')
     training = {'epochs': 300, 'steps_per_epoch': 100, 'warmup_steps': 1000, 'learning_rate': .001, 'learning_rate_schedule': 'cosine', 'seed': 0,
                 'physics_tolerance': .01, 'data_tolerance': .01}
-    if method == 'kinn':
+    if method == 'fixed':
         training['alpha'] = 1.
     _keys(obj.get('training', {}), training, 'training')
     training.update(obj.get('training', {}))
@@ -155,8 +155,8 @@ def validate(obj, *, base=Path('.')):
     uncertainty.update(obj.get('uncertainty', {}))
     if type(uncertainty['representation_error']) is not bool:
         raise ProblemError('uncertainty.representation_error must be a boolean')
-    if method == 'kinn' and uncertainty['representation_error']:
-        raise ProblemError('representation_error requires method rkinn')
+    if method == 'fixed' and uncertainty['representation_error']:
+        raise ProblemError('representation_error requires method mle')
     units = obj.get('units', {'time': 'unspecified', 'bulk': 'unspecified', 'surface': 'fraction'})
     _keys(units, ('time', 'bulk', 'surface'), 'units')
     if any(not isinstance(x, str) or not x.strip() for x in units.values()):
@@ -222,7 +222,7 @@ def describe(problem):
     u, singular, _ = np.linalg.svd(matrix[problem['order']])
     rank = int(np.sum(singular >= 1e-8))
     output = len(problem['species']) - bool(problem['surface_species'])
-    if problem['method'] == 'rkinn':
+    if problem['method'] == 'mle':
         latent = u[:, :rank][problem['n_bulk']:]
         bulk_directions = rank - int(np.sum(np.linalg.svd(latent.T @ latent, compute_uv=False) >= 1e-12))
         output = len(problem['surface_species']) - bool(problem['surface_species']) + bulk_directions
@@ -235,4 +235,4 @@ def describe(problem):
             'initial_condition_enforced': [row['initial_state'] is not None for row in problem['datasets']],
             'surrogate': problem['surrogate'], 'datasets': len(problem['datasets']),
             'time_scale': problem['time_scale'], 'units': problem['units'],
-            'execution': 'local', 'variance': 'first-order residual propagation with OAS shrinkage' if problem['method'] == 'rkinn' else 'not estimated by the original KINNs weighted objective'}
+            'execution': 'local', 'variance': 'first-order residual propagation with OAS shrinkage' if problem['method'] == 'mle' else 'not estimated by the fixed-weight objective'}

@@ -97,12 +97,12 @@ def run(problem):
     status = 'converged' if success else 'max_epochs'
     if success and not (checks['nonnegative_at_sampled_points'] and checks['surface_site_balance_satisfied']):
         status = 'physical_constraint_violation'
-    return {'schema_version': 1, 'method': 'kinn', 'status': status,
+    return {'schema_version': 1, 'method': 'fixed', 'status': status,
             'mode': problem['mode'], 'species': problem['species'],
             'rate_constants': np.asarray(jnp.exp(logs)).tolist(), 'log_rate_constants': np.asarray(logs).tolist(),
             'predictions': [{'times': row['times'], 'states': x.tolist()} for row, x in zip(problem['datasets'], arrays)],
             'history': history, 'objective': 'physics_mse + alpha * data_mse', 'alpha': settings['alpha'],
-            'uncertainty': {'method': 'not_estimated', 'scope': 'The original weighted KINNs objective does not estimate covariance; use method rkinn for automatic residual propagation.'},
+            'uncertainty': {'method': 'not_estimated', 'scope': 'The fixed-weight objective does not estimate covariance; use method mle for automatic residual propagation.'},
             'physical_checks': checks,
             'units': problem['units'], 'surrogate': problem['surrogate'], 'time_scale': problem['time_scale'],
             'timing': timing(started, setup_seconds, warmup_seconds, durations, epochs)}

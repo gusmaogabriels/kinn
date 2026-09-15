@@ -5,12 +5,13 @@ from kinn import solve
 from kinn.cli import example, main
 
 
-@pytest.mark.parametrize('method', ['kinn', 'rkinn'])
+@pytest.mark.parametrize('method', ['fixed', 'mle'])
 @pytest.mark.parametrize('mode', ['forward', 'inverse'])
 @pytest.mark.parametrize('kind', ['homogeneous', 'adsorption'])
 def test_analytic_forward_and_inverse_problems(method, mode, kind, tmp_path):
     raw = example(kind, mode, method)
     result = solve(raw)
+    assert result['method'] == method
     (tmp_path/f'{method}-{kind}-{mode}.json').write_text(json.dumps(result, allow_nan=False))
     assert result['status'] == 'converged', result['history'][-1]
     states = np.array(result['predictions'][0]['states'])
@@ -21,13 +22,13 @@ def test_analytic_forward_and_inverse_problems(method, mode, kind, tmp_path):
     if mode == 'forward':
         np.testing.assert_allclose(result['rate_constants'], [2, 1], rtol=1e-14)
     else:
-        np.testing.assert_allclose(result['rate_constants'], [2, 1], rtol=.08 if method == 'kinn' else .04)
+        np.testing.assert_allclose(result['rate_constants'], [2, 1], rtol=.08 if method == 'fixed' else .04)
     assert result['physical_checks']['nonnegative_at_sampled_points']
     assert result['physical_checks']['surface_site_balance_satisfied']
     times = result['timing']
     assert times['wall_seconds'] >= times['setup_seconds'] + sum(times['warm_epoch_seconds']) + times['first_epoch_seconds']
     assert len(times['warm_epoch_seconds']) == len(result['history']) - 1
-    if method == 'rkinn' and mode == 'inverse':
+    if method == 'mle' and mode == 'inverse':
         uncertainty = result['uncertainty']
         assert uncertainty['full_state_sensitivity_identifiable']
         for key in ('state_residual_covariance', 'log_rate_error_covariance', 'rate_error_covariance'):
@@ -35,11 +36,11 @@ def test_analytic_forward_and_inverse_problems(method, mode, kind, tmp_path):
             assert np.isfinite(matrix).all()
             np.testing.assert_allclose(matrix, matrix.T, atol=1e-12)
             assert np.linalg.eigvalsh(matrix).min() >= -1e-10
-    if method == 'kinn':
+    if method == 'fixed':
         assert result['uncertainty']['method'] == 'not_estimated'
 
 
-@pytest.mark.parametrize('method', ['kinn', 'rkinn'])
+@pytest.mark.parametrize('method', ['fixed', 'mle'])
 def test_multiple_datasets_unequal_samples_and_time_units(method):
     raw = example(method=method)
     row = raw['datasets'][0]
@@ -57,7 +58,7 @@ def test_multiple_datasets_unequal_samples_and_time_units(method):
     assert max(result['rate_constants']) < .01
 
 
-@pytest.mark.parametrize('method', ['kinn', 'rkinn'])
+@pytest.mark.parametrize('method', ['fixed', 'mle'])
 def test_inverse_can_infer_without_initial_state(method):
     raw = example(method=method)
     del raw['datasets'][0]['initial_state']

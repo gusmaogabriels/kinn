@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "method": "kinn",
+  "method": "fixed",
   "mode": "inverse",
   "species": [
     "A",

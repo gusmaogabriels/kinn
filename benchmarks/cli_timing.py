@@ -15,7 +15,7 @@ args = parser.parse_args()
 results = []
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
-    for method in ('kinn', 'rkinn'):
+    for method in ('fixed', 'mle'):
         for mode in ('forward', 'inverse'):
             problem, output = root/'problem.json', root/'result.json'
             subprocess.run([sys.executable, '-m', 'kinn', 'example', '--method', method, '--mode', mode, '--output', str(problem)], check=True)

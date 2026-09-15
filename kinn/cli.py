@@ -10,7 +10,7 @@ import tempfile
 from . import __version__
 
 
-def example(kind='homogeneous', mode='inverse', method='rkinn'):
+def example(kind='homogeneous', mode='inverse', method='mle'):
     import math
     times = [i / 20 for i in range(21)]
     if kind == 'homogeneous':
@@ -28,7 +28,7 @@ def example(kind='homogeneous', mode='inverse', method='rkinn'):
     if mode == 'inverse':
         row['values'] = values
     training = {'epochs': 300, 'steps_per_epoch': 100, 'warmup_steps': 1000, 'learning_rate': .001, 'seed': 0}
-    if method == 'kinn' and mode == 'inverse':
+    if method == 'fixed' and mode == 'inverse':
         training.update(alpha=100., data_tolerance=.0005)
     return {'schema_version': 1, 'method': method, 'mode': mode, 'species': species, 'surface_species': surface,
             'stoichiometry': matrix, 'observed_species': observed,
@@ -62,8 +62,8 @@ def main(argv=None):
     ex = sub.add_parser('example', help='Print a complete analytic example problem.')
     ex.add_argument('--kind', choices=('homogeneous', 'adsorption'), default='homogeneous')
     ex.add_argument('--mode', choices=('forward', 'inverse'), default='inverse')
-    ex.add_argument('--method', choices=('kinn', 'rkinn'), default='rkinn',
-                    help='Training formulation within kinn: rkinn = MLE covariance weighting and SVD (default); kinn = original fixed-weight loss.')
+    ex.add_argument('--method', choices=('fixed', 'mle'), default='mle',
+                    help='fixed = chosen data/physics weight (alpha); mle = adaptive covariance weighting and SVD (default).')
     ex.add_argument('--output')
     for command in ('validate', 'run'):
         child = sub.add_parser(command, help='Validate a problem without training.' if command == 'validate' else 'Run the forward or inverse problem locally.')
@@ -75,12 +75,12 @@ def main(argv=None):
             _emit(json.loads(files('kinn').joinpath('schema.json').read_text()))
         elif args.command == 'capabilities':
             from .problem import ACTIVATIONS
-            _emit({'package': 'kinn', 'version': __version__, 'methods': {'kinn': 'Original fixed-weight loss within kinn: physics MSE + alpha * data MSE', 'rkinn': 'MLE extension within kinn: automatic covariance weighting, variance propagation and SVD'},
+            _emit({'package': 'kinn', 'version': __version__, 'methods': {'fixed': 'Fixed residual weighting: physics MSE + alpha * data MSE', 'mle': 'MLE adaptive covariance weighting, variance propagation and SVD'},
                    'modes': ['forward', 'inverse'], 'reactor': 'closed batch, mass-action kinetics',
                    'matrix_layout': 'species by directed elementary reaction; forward and reverse require separate columns',
                    'surface_constraint': 'one conserved site balance including vacant sites',
                    'observations': 'all nonsurface species, or all species; multiple datasets share kinetic parameters',
-                   'surrogate': {'families': {'kinn': 'original nn_combo MLP and surface transform', 'rkinn': 'original nn_npt SVD-constrained MLP'}, 'hidden_layers': 'configurable', 'activations': ACTIVATIONS},
+                   'surrogate': {'families': {'fixed': 'original nn_combo MLP and surface transform', 'mle': 'original nn_npt SVD-constrained MLP'}, 'hidden_layers': 'configurable', 'activations': ACTIVATIONS},
                    'variance': 'first-order residual propagation with automatic OAS covariance weighting; not posterior credible intervals',
                    'execution': 'local', 'network': 'none'})
         elif args.command == 'example':
@@ -94,7 +94,7 @@ def main(argv=None):
                 _emit(describe(problem), args.output)
             else:
                 from .numerics import NumericalError
-                if problem['method'] == 'kinn':
+                if problem['method'] == 'fixed':
                     from .pareto import run
                 else:
                     from .rkinn import run

@@ -7,11 +7,14 @@ from kinn.cli import example, main
 from kinn.problem import ProblemError, describe, load, validate
 
 
-@pytest.mark.parametrize('method', ['kinn', 'rkinn'])
+@pytest.mark.parametrize('method', ['fixed', 'mle'])
 @pytest.mark.parametrize('mode', ['forward', 'inverse'])
 @pytest.mark.parametrize('kind', ['homogeneous', 'adsorption'])
-def test_examples_match_schema_and_dimensions(method, mode, kind):
-    raw = example(kind, mode, method)
+def test_examples_match_schema_and_dimensions(method, mode, kind, tmp_path):
+    path = tmp_path/'problem.json'
+    assert main(['example', '--method', method, '--mode', mode, '--kind', kind, '--output', str(path)]) == 0
+    raw = json.loads(path.read_text())
+    assert raw == example(kind, mode, method)
     schema = json.loads(files('kinn').joinpath('schema.json').read_text())
     Draft202012Validator.check_schema(schema)
     Draft202012Validator(schema).validate(raw)

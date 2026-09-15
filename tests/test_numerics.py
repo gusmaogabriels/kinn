@@ -90,7 +90,7 @@ def test_rank_deficient_parameters_do_not_report_zero_certainty():
 
 def test_original_kinn_loss_matches_paper_weighted_residuals():
     from kinn.pareto import build as build_kinn
-    raw = example(method='kinn'); raw['training']['alpha'] = 7
+    raw = example(method='fixed'); raw['training']['alpha'] = 7
     p = validate(raw); engine, data = build_kinn(p)
     params = engine.params
     physics, measured, _ = engine.res_fun(params, [7.], data)
