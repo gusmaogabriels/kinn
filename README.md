@@ -164,10 +164,10 @@ During MLE training, KINNs estimates covariance from sampled residuals and propa
 The comparison below shows this adaptive trajectory alongside the regularization sweep from the [original fixed-alpha formulation](https://doi.org/10.48550/arXiv.2011.14473), evaluated in the same likelihood coordinates.
 
 <p align="center">
-  <img src="./misc/gifs/pareto-sweep.gif" alt="Overlaid fixed-alpha and MLE convergence paths in shared likelihood coordinates, with a close-up of the MLE stable point" width="800"/>
+  <img src="./misc/gifs/pareto-sweep.gif" alt="Overlaid fixed-alpha and MLE convergence paths, with the paper's final MLE estimate marked by a black circle and enlarged in the inset" width="800"/>
 </p>
 
-*Animated redraw of [Figure 2c of the MLE paper](https://arxiv.org/html/2304.05991v2#S2.F2).* Fixed-alpha and MLE paths share the paper's likelihood coordinates, with the MLE stable point enlarged in the inset. Frames reveal published points; playback does not represent training time.
+*Animated redraw of [Figure 2c of the MLE paper](https://arxiv.org/html/2304.05991v2#S2.F2).* Fixed-alpha and MLE paths share the paper's likelihood coordinates. The black circle marks the paper's final MLE estimate, enlarged in the inset. Frames reveal every published point, with faster playback near convergence; playback does not represent training time.
 
 ## MLE training example
 
