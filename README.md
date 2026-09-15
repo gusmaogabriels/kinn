@@ -162,10 +162,10 @@ CI covers Linux, macOS and Windows, supported dependency combinations, numerical
 The [original KINNs paper](https://doi.org/10.48550/arXiv.2011.14473) studies the tradeoff between fitting measurements and satisfying the kinetic model. In inverse `fixed` problems, each fit uses physics MSE + `alpha` × data MSE. Sweeping alpha across fits traces the regularization path.
 
 <p align="center">
-  <img src="./misc/gifs/pareto-sweep.gif" alt="Animated fixed-weight Pareto curve showing model and data mean-square errors and the tightening and relaxation turns" width="800"/>
+  <img src="./misc/gifs/pareto-sweep.gif" alt="Fixed-alpha Pareto sweep and overlaid fixed-alpha and MLE convergence paths in shared likelihood coordinates, with a close-up of the MLE stable point" width="800"/>
 </p>
 
-*Animated redraw of the published fixed-weight Pareto points in [Figure 2a of the MLE paper](https://arxiv.org/html/2304.05991v2#S2.F2).* Frames reveal the plotted points; they do not represent a new training run. The two marked turns show the tightening and relaxation branches of the sweep.
+*Animated redraw of [Figure 2a,c of the MLE paper](https://arxiv.org/html/2304.05991v2#S2.F2).* Left: fixed-alpha Pareto sweep. Right: fixed-alpha and MLE paths in the paper's shared likelihood coordinates, with the MLE stable point enlarged. Frames reveal published points; playback does not represent training time.
 
 ## MLE training example
 
