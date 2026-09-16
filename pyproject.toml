@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kinn"
+name = "kinnlib"
 dynamic = ["version"]
 description = "Kinetics-informed neural networks with local forward and inverse inference, MLE variance propagation and SVD"
 readme = "README.md"
@@ -17,6 +17,8 @@ kinn = "kinn.cli:main"
 
 [project.urls]
 Repository = "https://github.com/gusmaogabriels/kinn"
+Documentation = "https://github.com/gusmaogabriels/kinn/blob/main/docs/cli.md"
+Issues = "https://github.com/gusmaogabriels/kinn/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "build", "twine", "jsonschema>=4"]

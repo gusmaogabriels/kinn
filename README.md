@@ -4,17 +4,23 @@
 
 ## Run locally
 
-Python 3.11 or newer is required. Install from the repository:
+Python 3.11 or newer is required. The distribution is named `kinnlib`; the Python import and command are both `kinn`.
+
+```sh
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install kinnlib
+```
+
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead. Installation provides the `kinn` Python package and the `kinn` command. `python -m kinn` is an equivalent entry point. Training runs locally on the machine where you invoke it.
+
+To install from source instead:
 
 ```sh
 git clone https://github.com/gusmaogabriels/kinn.git
 cd kinn
-python -m venv .venv
-source .venv/bin/activate
 python -m pip install .
 ```
-
-On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead. Installation provides the `kinn` Python package and the `kinn` command. `python -m kinn` is an equivalent entry point. Training runs locally on the machine where you invoke it.
 
 ### Estimate rate constants from measurements
 
@@ -69,7 +75,7 @@ MLE updates covariance matrices during training, rather than tuning a scalar alp
 The CLI includes the original four mechanisms, both initial conditions, and 21 saved fixed-weight training archives. Re-evaluate a reference experiment with its trajectories, derivatives, parameters, calibration scales and Pareto history:
 
 ```sh
-python -m pip install ".[reproduce]"
+python -m pip install "kinnlib[reproduce]"
 kinn reproduce list
 kinn reproduce run trainer_invvwn_3_alpha13 --output paper-example --plots
 ```
@@ -156,6 +162,13 @@ Neural evaluations, time derivatives, kinetic Jacobians and optimizer steps use 
 The first-epoch timing includes compilation on first use. Warm epoch timings include covariance refresh and diagnostics; warm optimizer-kernel timings isolate the optimizer steps. JAX results are synchronized before timings are recorded. `wall_seconds` includes setup and uncertainty reporting but excludes Python/import startup; [the timing benchmark](./benchmarks/cli_timing.py) also measures fresh-process wall time. See the [timing guide](./docs/cli.md#jax-execution-and-timings) for details.
 
 CI covers Linux, macOS and Windows, supported dependency combinations, numerical examples, covariance propagation and installation of the built wheel.
+
+## Citation
+
+For research using KINN, cite the software version or source revision used and the applicable methods papers. [CITATION.cff](./CITATION.cff) contains software and paper citation metadata.
+
+- Gabriel S. Gusmão, Adhika P. Retnanto, Shashwati C. da Cunha and Andrew J. Medford. [Kinetics-informed neural networks](https://doi.org/10.1016/j.cattod.2022.04.002). *Catalysis Today* (2023).
+- Gabriel S. Gusmão and Andrew J. Medford. [Maximum-likelihood estimators in physics-informed neural networks for high-dimensional inverse problems](https://doi.org/10.1016/j.compchemeng.2023.108547). *Computers & Chemical Engineering* (2024).
 
 ## Adaptive covariance weighting during training
 

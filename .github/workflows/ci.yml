@@ -78,6 +78,7 @@ jobs:
           /tmp/kinn-wheel/bin/python -m pip install --force-reinstall dist/*.whl "matplotlib>=3.8"
           cd /tmp
           /tmp/kinn-wheel/bin/python -m pip check
+          /tmp/kinn-wheel/bin/python -c 'from importlib.metadata import distribution; import kinn; d = distribution("kinnlib"); assert d.version == kinn.__version__; assert any(e.group == "console_scripts" and e.name == "kinn" and e.value == "kinn.cli:main" for e in d.entry_points)'
           /tmp/kinn-wheel/bin/kinn example --method fixed --mode forward --output kinn-input.json
           /tmp/kinn-wheel/bin/kinn validate kinn-input.json
           /tmp/kinn-wheel/bin/kinn run kinn-input.json --output kinn-output.json

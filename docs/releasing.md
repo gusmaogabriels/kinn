@@ -1,6 +1,6 @@
 # Releasing the CLI
 
-The distribution installs the `kinn` Python package and `kinn` command. Release
+The `kinnlib` distribution installs the `kinn` Python package and `kinn` command. Release
 builds use `kinn.__version__`; a release does not require a version change when
 that version has never been published for this project.
 
@@ -15,12 +15,13 @@ Publishing uses PyPI Trusted Publishing, configured separately for each registry
 
 | Setting | Value |
 | --- | --- |
+| PyPI project | `kinnlib` |
 | Repository owner | `gusmaogabriels` |
 | Repository | `kinn` |
 | Workflow filename | `publish.yml` |
 | GitHub environment | `pypi` (or `testpypi`) |
 
-The PyPI project name must match the distribution name in `pyproject.toml`, and
+The PyPI project name `kinnlib` must match the distribution name in `pyproject.toml`, and
 the publisher must be registered on a project owned by its maintainer. Until
 that is configured and an upload succeeds, use the repository or a verified
 GitHub release artifact for installation. See the

@@ -80,7 +80,7 @@ def main(argv=None):
             _emit(json.loads(files('kinn').joinpath('schema.json').read_text()))
         elif args.command == 'capabilities':
             from .problem import ACTIVATIONS
-            _emit({'package': 'kinn', 'version': __version__, 'methods': {'fixed': 'Fixed residual weighting: physics MSE + alpha * data MSE', 'mle': 'MLE adaptive covariance weighting, variance propagation and SVD'},
+            _emit({'package': 'kinn', 'distribution': 'kinnlib', 'version': __version__, 'methods': {'fixed': 'Fixed residual weighting: physics MSE + alpha * data MSE', 'mle': 'MLE adaptive covariance weighting, variance propagation and SVD'},
                    'modes': ['forward', 'inverse'], 'reactor': 'closed batch, mass-action kinetics',
                    'matrix_layout': 'species by directed elementary reaction; forward and reverse require separate columns',
                    'surface_constraint': 'one conserved site balance including vacant sites',

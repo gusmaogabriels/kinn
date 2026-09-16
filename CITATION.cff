@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: >-
+  Please cite the KINN software version or source revision used and the applicable
+  methods papers listed below. The distribution is kinnlib; the import and
+  command are kinn.
+type: software
+title: "KINN: Kinetics-Informed Neural Networks"
+authors:
+  - family-names: "Gusmão"
+    given-names: "Gabriel S."
+version: "1.0"
+repository-code: "https://github.com/gusmaogabriels/kinn"
+url: "https://github.com/gusmaogabriels/kinn"
+abstract: >-
+  Local forward and inverse kinetic inference with JAX neural surrogates,
+  fixed-alpha or MLE adaptive covariance weighting, SVD constraints and
+  automatic local variance propagation.
+references:
+  - type: article
+    title: "Kinetics-informed neural networks"
+    authors:
+      - family-names: "Gusmão"
+        given-names: "Gabriel S."
+      - family-names: "Retnanto"
+        given-names: "Adhika P."
+      - family-names: "Cunha"
+        given-names: "Shashwati C. da"
+      - family-names: "Medford"
+        given-names: "Andrew J."
+    journal: "Catalysis Today"
+    year: 2023
+    doi: "10.1016/j.cattod.2022.04.002"
+  - type: article
+    title: "Maximum-likelihood estimators in physics-informed neural networks for high-dimensional inverse problems"
+    authors:
+      - family-names: "Gusmão"
+        given-names: "Gabriel S."
+      - family-names: "Medford"
+        given-names: "Andrew J."
+    journal: "Computers & Chemical Engineering"
+    year: 2024
+    doi: "10.1016/j.compchemeng.2023.108547"
