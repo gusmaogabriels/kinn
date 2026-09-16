@@ -231,15 +231,15 @@ $`\mathbf{M}`$ has species rows and reaction columns, $`\psi`$ is the power-law 
 
 ```math
 \begin{aligned}
-\boldsymbol{\varepsilon}_{\mathbf{x}_i}
+\boldsymbol{\varepsilon}_{\mathbf{x},i}
   &=\mathbf{x}(t_i,\boldsymbol{\omega}_{\mathrm{s}})-\tilde{\mathbf{x}}_i,\\
-\boldsymbol{\varepsilon}_{\dot{\mathbf{x}}_i}
+\boldsymbol{\varepsilon}_{\dot{\mathbf{x}},i}
   &=\dot{\mathbf{x}}(t_i,\boldsymbol{\omega}_{\mathrm{s}})-f(\mathbf{x}_i,\mathbf{p}),\\
 j_{\mathrm{t}}
-  &=\frac1d\sum_{i=1}^{d}
-    \boldsymbol{\varepsilon}_{\dot{\mathbf{x}}_i}^{T}\boldsymbol{\varepsilon}_{\dot{\mathbf{x}}_i}
+  &=\frac{1}{d}\sum_{i=1}^{d}
+    \boldsymbol{\varepsilon}_{\dot{\mathbf{x}},i}^{T}\boldsymbol{\varepsilon}_{\dot{\mathbf{x}},i}
    +\frac{\alpha}{d}\sum_{i=1}^{d}
-    \boldsymbol{\varepsilon}_{\mathbf{x}_i}^{T}\boldsymbol{\varepsilon}_{\mathbf{x}_i}.
+    \boldsymbol{\varepsilon}_{\mathbf{x},i}^{T}\boldsymbol{\varepsilon}_{\mathbf{x},i}.
 \end{aligned}
 ```
 
@@ -295,26 +295,30 @@ The paper neglects $`\partial_{\mathbf{x}}\dot{\mathbf{x}}`$ under its stated ap
 
 ```math
 \begin{aligned}
-\boldsymbol{\Sigma}_{\dot{\mathbf{x}}_i}
+\boldsymbol{\Sigma}_{\dot{\mathbf{x}},i}
 &=\partial_{\mathbf{x}}f_i\,\boldsymbol{\Sigma}_{\mathbf{x}}\,
   (\partial_{\mathbf{x}}f_i)^T
  +\partial_{\mathbf{p}}f_i\,\boldsymbol{\Sigma}_{\mathbf{p}}\,
   (\partial_{\mathbf{p}}f_i)^T\\
-&=\boldsymbol{\Sigma}^{\mathbf{x}}_{\dot{\mathbf{x}}_i}
- +\boldsymbol{\Sigma}^{\mathbf{p}}_{\dot{\mathbf{x}}_i},
+&=\boldsymbol{\Sigma}^{\mathbf{x}}_{\dot{\mathbf{x}},i}
+ +\boldsymbol{\Sigma}^{\mathbf{p}}_{\dot{\mathbf{x}},i},
 \qquad f_i=f(\mathbf{x}_i,\mathbf{p}).
 \end{aligned}
 ```
 
 ### Projected MLE objective and covariance updates
 
-Project residuals into the range using $`(\mathbf{U}^{\mathrm{R}})^T`$. With the residual signs defined above,
+Project residuals into the range using $`(\mathbf{U}^{\mathrm{R}})^T`$. Here $`i`$ indexes samples and $`\mathrm{R}`$ denotes the range coordinates. With the residual signs defined above,
 
 ```math
-\boldsymbol{\varepsilon}_{\mathbf{z}_i}^{\mathrm{R}}
- =(\mathbf{U}^{\mathrm{R}})^T\boldsymbol{\varepsilon}_{\mathbf{x}_i},\qquad
-\boldsymbol{\varepsilon}_{\dot{\mathbf{z}}_i}^{\mathrm{R}}
- =(\mathbf{U}^{\mathrm{R}})^T\boldsymbol{\varepsilon}_{\dot{\mathbf{x}}_i}.
+\begin{aligned}
+\boldsymbol{\varepsilon}_{\mathbf{z},i}^{\mathrm{R}}
+ &=\bigl(\mathbf{U}^{\mathrm{R}}\bigr)^T
+   \,\boldsymbol{\varepsilon}_{\mathbf{x},i},\\[6pt]
+\boldsymbol{\varepsilon}_{\dot{\mathbf{z}},i}^{\mathrm{R}}
+ &=\bigl(\mathbf{U}^{\mathrm{R}}\bigr)^T
+   \,\boldsymbol{\varepsilon}_{\dot{\mathbf{x}},i}.
+\end{aligned}
 ```
 
 The precision matrices in [Eq. 4.7.3](https://arxiv.org/html/2304.05991v2#S4.SS7.E3) are the **inverses of the projected covariances**:
@@ -322,27 +326,38 @@ The precision matrices in [Eq. 4.7.3](https://arxiv.org/html/2304.05991v2#S4.SS7
 ```math
 \begin{aligned}
 \boldsymbol{\Omega}_{\mathbf{z}}^{\mathrm{R}}
- &=\left[(\mathbf{U}^{\mathrm{R}})^T\boldsymbol{\Sigma}_{\mathbf{x}}\mathbf{U}^{\mathrm{R}}\right]^{-1},\\
-\boldsymbol{\Omega}_{\dot{\mathbf{z}}_i}^{\mathrm{R}}
- &=\left[(\mathbf{U}^{\mathrm{R}})^T
-   \left(\boldsymbol{\Sigma}^{\mathbf{x}}_{\dot{\mathbf{x}}_i}
-        +\boldsymbol{\Sigma}^{\mathbf{p}}_{\dot{\mathbf{x}}_i}\right)
-   \mathbf{U}^{\mathrm{R}}\right]^{-1}.
+ &=\Bigl[
+   \bigl(\mathbf{U}^{\mathrm{R}}\bigr)^T
+   \,\boldsymbol{\Sigma}_{\mathbf{x}}
+   \,\mathbf{U}^{\mathrm{R}}
+   \Bigr]^{-1},\\[10pt]
+\boldsymbol{\Omega}_{\dot{\mathbf{z}},i}^{\mathrm{R}}
+ &=\Bigl[
+   \bigl(\mathbf{U}^{\mathrm{R}}\bigr)^T
+   \,\Bigl(
+     \boldsymbol{\Sigma}^{\mathbf{x}}_{\dot{\mathbf{x}},i}
+     +\boldsymbol{\Sigma}^{\mathbf{p}}_{\dot{\mathbf{x}},i}
+   \Bigr)
+   \,\mathbf{U}^{\mathrm{R}}
+   \Bigr]^{-1}.
 \end{aligned}
 ```
 
-With $`d`$ denoting the number of samples, the reduced objective is
+With $`d`$ denoting the number of samples, the reduced objective has a model-residual term and a data-residual term:
 
 ```math
-\min_{\boldsymbol{\omega}_{\mathrm{s}},\mathbf{p}}\ \ell_{\mathrm{t}}
-=\frac1d\sum_{i=1}^{d}\left[
- (\boldsymbol{\varepsilon}_{\dot{\mathbf{z}}_i}^{\mathrm{R}})^T
- \boldsymbol{\Omega}_{\dot{\mathbf{z}}_i}^{\mathrm{R}}
- \boldsymbol{\varepsilon}_{\dot{\mathbf{z}}_i}^{\mathrm{R}}
-+(\boldsymbol{\varepsilon}_{\mathbf{z}_i}^{\mathrm{R}})^T
- \boldsymbol{\Omega}_{\mathbf{z}}^{\mathrm{R}}
- \boldsymbol{\varepsilon}_{\mathbf{z}_i}^{\mathrm{R}}
-\right].
+\begin{aligned}
+\min_{\boldsymbol{\omega}_{\mathrm{s}},\mathbf{p}}\quad
+\ell_{\mathrm{t}}
+ &=\frac{1}{d}\sum_{i=1}^{d}
+   \Bigl(\boldsymbol{\varepsilon}_{\dot{\mathbf{z}},i}^{\mathrm{R}}\Bigr)^T
+   \,\boldsymbol{\Omega}_{\dot{\mathbf{z}},i}^{\mathrm{R}}
+   \,\boldsymbol{\varepsilon}_{\dot{\mathbf{z}},i}^{\mathrm{R}}\\[10pt]
+ &\quad+\frac{1}{d}\sum_{i=1}^{d}
+   \Bigl(\boldsymbol{\varepsilon}_{\mathbf{z},i}^{\mathrm{R}}\Bigr)^T
+   \,\boldsymbol{\Omega}_{\mathbf{z}}^{\mathrm{R}}
+   \,\boldsymbol{\varepsilon}_{\mathbf{z},i}^{\mathrm{R}}.
+\end{aligned}
 ```
 
 The paper holds precision matrices fixed during parameter updates, then recomputes residual covariances, kinetic sensitivities and projected precision matrices between epochs ([Algorithm 1](https://arxiv.org/html/2304.05991v2#alg1)). Gaussian normalization terms are constant within that parameter-update problem. The covariance stabilization in [Eq. 4.2.1](https://arxiv.org/html/2304.05991v2#S4.SS2.E1) adds a diagonal term based on the absolute residual mean. This is the paper's mechanism for adapting residual weights as training proceeds.
