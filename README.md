@@ -1,5 +1,11 @@
 # kinn: Kinetics-Informed Neural Networks
 
+[![CI](https://img.shields.io/github/actions/workflow/status/gusmaogabriels/kinn/ci.yml?branch=main&event=push&label=CI)](https://github.com/gusmaogabriels/kinn/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/kinnlib?label=PyPI&color=blue)](https://pypi.org/project/kinnlib/)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue)](./LICENSE)
+[![GitHub downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgusmaogabriels%2Foptinpy%2Fdistribution-statistics%2Fpackages%2Fbadges%2Fkinn-github.json)](https://github.com/gusmaogabriels/kinn/releases)
+[![PyPI downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgusmaogabriels%2Foptinpy%2Fdistribution-statistics%2Fpackages%2Fbadges%2Fkinn-pypi.json)](https://pypistats.org/packages/kinnlib "Monthly total shown only when complete and current; otherwise unavailable. View the public source.")
+
 `kinn` fits neural-network trajectories to kinetic models and measurements using JAX. It supports forward problems with known rate constants and inverse problems that estimate rates from measurements. Both modes support fixed residual weighting or MLE adaptive covariance weighting. The MLE formulation includes SVD conservation constraints and, for inverse problems, automatic variance propagation.
 
 ## Run locally
