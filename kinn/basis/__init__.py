@@ -1,51 +1,67 @@
-# -*- coding: utf-8 -*-
-from __future__ import division, absolute_import, print_function
+"""kinn.basis -- Kinetics-Informed Neural Networks.
 
-__author__ = {'Gabriel S. Gusmao' : 'gusmaogabriels@gmail.com'}
+Core:
+  model  -- stoichiometry, SVD decomposition, rate law (M @ r), PSSH
+  nnx    -- neural network (MLP, structured nn_npt with SVD projection)
+  mle    -- MLE optimizer with OAS covariance reweighting
+
+kinn provides the trajectory parameterization in SVD coordinates and the
+mass-action physics residual (dx/dt - M @ r). Plotting is optional.
+"""
+__author__ = {'Gabriel S. Gusmao': 'gusmaogabriels@gmail.com'}
 __version__ = '1.0'
 
+# JAX core (required by submodules via `from . import jnp, jit, ...`)
+import jax
 import jax.numpy as jnp
 from numpy.random import choice
-import numpy as np
+import numpy as onp
+np = onp
 from jax import grad, jit, vmap, pmap, jacobian, jacfwd, jacrev, hessian, random
 from functools import partial
 from jax.lax import Precision
 from jax.scipy.special import logsumexp
-from jax.experimental import optimizers
-from jax.config import config
 from jax.tree_util import tree_map
-config.update("jax_debug_nans", True)
-config.update('jax_enable_x64', True)
+
+jax.config.update('jax_enable_x64', True)
+config = jax.config
+
+try:
+    from jax.example_libraries import optimizers
+except ImportError:
+    optimizers = None
+
+# Stdlib + scipy (used by mle.py internals)
 import time
-from IPython.display import clear_output
-from matplotlib import pyplot as plt
 import itertools
-from matplotlib import animation, cm
-from IPython.display import HTML
-from IPython.display import display, Image
-from matplotlib.ticker import FormatStrFormatter
-from matplotlib.ticker import MaxNLocator
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.interpolate import interp1d
+from scipy.interpolate import griddata, BSpline, CubicSpline
+from scipy.integrate import solve_ivp
 from scipy.optimize import minimize
-from scipy.interpolate import griddata, interp1d, BSpline, CubicSpline
-from scipy.integrate import solve_ivp, quadrature, romberg, simps
-plt.style.use('seaborn-white')
 
-SMALL_SIZE = 12
-MEDIUM_SIZE = 12
-BIGGER_SIZE = 13
+try:
+    from IPython.display import clear_output
+except ImportError:
+    clear_output = lambda wait=False: None
 
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+try:
+    from scipy.integrate import simps
+except ImportError:
+    from scipy.integrate import simpson as simps
 
-left  = 0.05  # the left side of the subplots of the figure
-right = 0.925    # the right side of the subplots of the figure
-bottom = 0.15   # the bottom of the subplots of the figure
-top = 0.85      # the top of the subplots of the figure
-wspace = 0.225   # the amount of width reserved for blank space between subplots
-hspace = 0.25   # the amount of height reserved for white space between subplots
+# Sub-modules
+from .model import model, pssh
+from .nnx import nn
+from .mle import nn_npt, opt, cov_oas
+
+
+def __getattr__(name):
+    # Keep the original notebook imports available without importing plotting
+    # libraries in local optimization or command-line processes.
+    if name in {'plt', 'animation', 'cm', 'HTML', 'display', 'Image',
+                'FormatStrFormatter', 'MaxNLocator', 'make_axes_locatable',
+                'SMALL_SIZE', 'MEDIUM_SIZE', 'BIGGER_SIZE',
+                'left', 'right', 'bottom', 'top', 'wspace', 'hspace'}:
+        from . import plot_setup
+        return getattr(plot_setup, name)
+    raise AttributeError(name)

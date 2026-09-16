@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kinn"
+dynamic = ["version"]
+description = "Kinetics-informed neural networks with local forward and inverse inference, MLE variance propagation and SVD"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [{name = "Gabriel S. Gusmão", email = "gusmaogabriels@gmail.com"}]
+dependencies = ["jax>=0.4.38", "numpy>=1.26", "scipy>=1.12", "optax>=0.2.4"]
+
+[project.scripts]
+kinn = "kinn.cli:main"
+
+[project.urls]
+Repository = "https://github.com/gusmaogabriels/kinn"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "build", "twine", "jsonschema>=4"]
+notebooks = ["matplotlib>=3.8", "ipython", "jupyter", "scikit-learn"]
+reproduce = ["matplotlib>=3.8"]
+
+[tool.setuptools.dynamic]
+version = {attr = "kinn.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["kinn*"]
+
+[tool.setuptools.package-data]
+kinn = ["schema.json"]
+"kinn.reproduction" = ["data/*.json", "data/*.npz"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

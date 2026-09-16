@@ -1,0 +1,114 @@
+name: Tests and distributions
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+            dependencies: minimum
+          - os: ubuntu-latest
+            python: '3.13'
+            dependencies: latest
+          - os: macos-latest
+            python: '3.12'
+            dependencies: latest
+          - os: windows-latest
+            python: '3.12'
+            dependencies: latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      JAX_PLATFORMS: cpu
+      JAX_ENABLE_X64: 'true'
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install supported minimum dependencies
+        if: matrix.dependencies == 'minimum'
+        run: python -m pip install "jax[cpu]==0.4.38" "optax==0.2.4" "chex==0.1.88" "numpy==1.26.4" "scipy==1.12.0" ".[dev]"
+      - name: Install current dependencies
+        if: matrix.dependencies != 'minimum'
+        run: python -m pip install ".[dev]"
+      - run: python -m pip check
+      - name: Numerical, input, and CLI regression tests
+        run: python -m pytest -q
+      - name: Check installed command and packaged schema
+        run: |
+          kinn --version
+          kinn capabilities
+          kinn example --method mle --output problem.json
+          kinn validate problem.json
+          kinn schema
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - name: Install the wheel outside the source tree
+        run: |
+          python -m venv /tmp/kinn-wheel
+          /tmp/kinn-wheel/bin/python -m pip install --force-reinstall dist/*.whl "matplotlib>=3.8"
+          cd /tmp
+          /tmp/kinn-wheel/bin/python -m pip check
+          /tmp/kinn-wheel/bin/kinn example --method fixed --mode forward --output kinn-input.json
+          /tmp/kinn-wheel/bin/kinn validate kinn-input.json
+          /tmp/kinn-wheel/bin/kinn run kinn-input.json --output kinn-output.json
+          /tmp/kinn-wheel/bin/python -c 'import json; r=json.load(open("kinn-output.json")); assert r["status"] == "converged"'
+          /tmp/kinn-wheel/bin/kinn reproduce run all --output kinn-paper-references --plots
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: distributions
+          path: dist/*
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: paper-reference-results
+          path: /tmp/kinn-paper-references
+          if-no-files-found: error
+
+  timings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      JAX_PLATFORMS: cpu
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install .
+      - run: python benchmarks/cli_timing.py --output build/cli-timing.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cli-timing
+          path: build/cli-timing.json
+          if-no-files-found: error

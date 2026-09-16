@@ -1,0 +1,434 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Local kinn problem",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "mode": {
+      "enum": [
+        "forward",
+        "inverse"
+      ]
+    },
+    "species": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "surface_species": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "stoichiometry": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "integer",
+          "minimum": -2147483647,
+          "maximum": 2147483647
+        }
+      },
+      "description": "Species rows; directed elementary reaction columns. Negative reactants, positive products. Reverse reactions require their own columns."
+    },
+    "rate_constants": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "minItems": 1
+    },
+    "initial_rate_constants": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "minItems": 1
+    },
+    "observed_species": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "datasets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "times": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 3
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          "initial_state": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "collocation_times": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 3
+          },
+          "data_file": {
+            "type": "string",
+            "minLength": 1,
+            "description": "CSV relative to problem file, with time and observed-species column names."
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "times"
+            ],
+            "not": {
+              "required": [
+                "data_file"
+              ]
+            }
+          },
+          {
+            "required": [
+              "data_file"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "times"
+                  ]
+                },
+                {
+                  "required": [
+                    "values"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "surrogate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "layers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Hidden-layer widths; input and output dimensions are inferred from the model."
+        },
+        "activations": {
+          "oneOf": [
+            {
+              "enum": [
+                "tanh",
+                "sigmoid",
+                "swish",
+                "softplus",
+                "sin",
+                "gaussian"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "tanh",
+                  "sigmoid",
+                  "swish",
+                  "softplus",
+                  "sin",
+                  "gaussian"
+                ]
+              }
+            }
+          ]
+        },
+        "init_scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "boundary_gain": {
+          "oneOf": [
+            {
+              "const": "auto"
+            },
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          ],
+          "default": "auto",
+          "description": "Forward tanh gate gain in normalized time. Auto uses the known initial surface rate law."
+        }
+      }
+    },
+    "training": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "epochs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "steps_per_epoch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "learning_rate": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "physics_tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "data_tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "warmup_steps": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1000,
+          "description": "Data-fitting initialization before inverse variance-weighted optimization; zero disables it. Unused in forward mode."
+        },
+        "learning_rate_schedule": {
+          "enum": [
+            "constant",
+            "cosine"
+          ],
+          "default": "cosine"
+        },
+        "alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 1,
+          "description": "Fixed data MSE weight (alpha); only valid for method fixed."
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "representation_error": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also propagate the neural trajectory derivative linearization; can increase compilation cost."
+        }
+      }
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "time": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bulk": {
+          "type": "string",
+          "minLength": 1
+        },
+        "surface": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "method": {
+      "enum": [
+        "fixed",
+        "mle"
+      ],
+      "default": "mle",
+      "description": "fixed: chosen data/physics weight (alpha); mle: adaptive covariance weighting with variance propagation and SVD."
+    }
+  },
+  "required": [
+    "schema_version",
+    "mode",
+    "species",
+    "stoichiometry",
+    "datasets"
+  ],
+  "description": "Additional scientific checks (dimensions, conservation, observation coverage, strict time ordering) are performed by kinn validate.",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "forward"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "rate_constants"
+        ],
+        "not": {
+          "required": [
+            "initial_rate_constants"
+          ]
+        },
+        "properties": {
+          "datasets": {
+            "items": {
+              "required": [
+                "times",
+                "initial_state"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "values"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "data_file"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "inverse"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "initial_rate_constants"
+        ],
+        "not": {
+          "required": [
+            "rate_constants"
+          ]
+        },
+        "properties": {
+          "datasets": {
+            "items": {
+              "anyOf": [
+                {
+                  "required": [
+                    "times",
+                    "values"
+                  ]
+                },
+                {
+                  "required": [
+                    "data_file"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "not": {
+          "properties": {
+            "method": {
+              "const": "fixed"
+            }
+          },
+          "required": [
+            "method"
+          ]
+        }
+      },
+      "then": {
+        "properties": {
+          "training": {
+            "not": {
+              "required": [
+                "alpha"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "method": {
+            "const": "fixed"
+          }
+        },
+        "required": [
+          "method"
+        ]
+      },
+      "then": {
+        "properties": {
+          "uncertainty": {
+            "properties": {
+              "representation_error": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
