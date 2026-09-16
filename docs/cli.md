@@ -1,6 +1,6 @@
 # The local `kinn` CLI
 
-Install the repository with Python 3.11 or newer (`python -m pip install .`). This installs JAX, NumPy, SciPy and Optax, and the `kinn` command. Training and all input/output files stay on the machine running the command. There is no server, telemetry, or account requirement.
+Install `kinnlib` with Python 3.11 or newer (`python -m pip install kinnlib`), or install a source checkout with `python -m pip install .`. This installs JAX, NumPy, SciPy and Optax, and the `kinn` command. Python code imports `kinn`; `kinn capabilities` reports `package: kinn` and `distribution: kinnlib`. Training and all input/output files stay on the machine running the command. There is no server, telemetry, or account requirement.
 
 ## Choose the training formulation and problem
 

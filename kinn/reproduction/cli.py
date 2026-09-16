@@ -26,7 +26,7 @@ def add_parser(subparsers):
     train.add_argument('--max-stages', type=int)
     for child in (run, train):
         child.add_argument('--output', required=True, help='New or empty local output directory.')
-        child.add_argument('--plots', action='store_true', help='Export SVG/PDF plots; requires kinn[reproduce].')
+        child.add_argument('--plots', action='store_true', help='Export SVG/PDF plots; requires kinnlib[reproduce].')
 
 
 def run(args):
