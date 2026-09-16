@@ -4,17 +4,17 @@
 
 ## Run locally
 
-Python 3.11 or newer is required. The distribution is named `kinnlib`; the Python import and command are both `kinn`. PyPI publication is pending. Install the verified [GitHub release](https://github.com/gusmaogabriels/kinn/releases/tag/v1.0):
+Python 3.11 or newer is required. Install [kinnlib from PyPI](https://pypi.org/project/kinnlib/); the Python import and command are both `kinn`.
 
 ```sh
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install https://github.com/gusmaogabriels/kinn/releases/download/v1.0/kinnlib-1.0-py3-none-any.whl
+python -m pip install kinnlib
 ```
 
 On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead. Installation provides the `kinn` Python package and the `kinn` command. `python -m kinn` is an equivalent entry point. Training runs locally on the machine where you invoke it.
 
-To install from source instead:
+The [GitHub release](https://github.com/gusmaogabriels/kinn/releases/tag/v1.0) also provides a wheel and source archive. To install from a source checkout:
 
 ```sh
 git clone https://github.com/gusmaogabriels/kinn.git
@@ -75,7 +75,7 @@ MLE updates covariance matrices during training, rather than tuning a scalar alp
 The CLI includes the original four mechanisms, both initial conditions, and 21 saved fixed-weight training archives. Re-evaluate a reference experiment with its trajectories, derivatives, parameters, calibration scales and Pareto history:
 
 ```sh
-python -m pip install "matplotlib>=3.8"
+python -m pip install "kinnlib[reproduce]"
 kinn reproduce list
 kinn reproduce run trainer_invvwn_3_alpha13 --output paper-example --plots
 ```
