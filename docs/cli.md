@@ -1,6 +1,6 @@
 # The local `kinn` CLI
 
-Install the `kinnlib` wheel from the [GitHub release](https://github.com/gusmaogabriels/kinn/releases/tag/v1.0) with Python 3.11 or newer, following the [README instructions](../README.md#run-locally), or install a source checkout with `python -m pip install .`. PyPI publication is pending. This installs JAX, NumPy, SciPy and Optax, and the `kinn` command. Python code imports `kinn`; `kinn capabilities` reports `package: kinn` and `distribution: kinnlib`. Training and all input/output files stay on the machine running the command. There is no server, telemetry, or account requirement.
+Install [kinnlib from PyPI](https://pypi.org/project/kinnlib/) with Python 3.11 or newer (`python -m pip install kinnlib`), or install a source checkout with `python -m pip install .`. The [GitHub release](https://github.com/gusmaogabriels/kinn/releases/tag/v1.0) also provides a wheel. This installs JAX, NumPy, SciPy and Optax, and the `kinn` command. Python code imports `kinn`; `kinn capabilities` reports `package: kinn` and `distribution: kinnlib`. Training and all input/output files stay on the machine running the command. There is no server, telemetry, or account requirement.
 
 ## Choose the training formulation and problem
 

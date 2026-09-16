@@ -1,6 +1,6 @@
 # Reproducing the KINN papers
 
-All commands run locally through the single `kinn` package, distributed as `kinnlib`. Install the GitHub wheel using the [README instructions](../README.md#run-locally), then `python -m pip install "matplotlib>=3.8"` for optional plots, or use `python -m pip install ".[reproduce]"` from a source checkout. PyPI publication is pending. Numerical commands need only the base installation.
+All commands run locally through the single `kinn` package, distributed as `kinnlib`. Install `python -m pip install "kinnlib[reproduce]"` for optional Matplotlib plots, or use `python -m pip install ".[reproduce]"` from a source checkout. Numerical commands need only the base installation.
 
 ## Coverage and acceptance criteria
 
